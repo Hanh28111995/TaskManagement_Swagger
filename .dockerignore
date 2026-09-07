@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+.git/
+.vscode/
+**/*.user
+**/*.suo
+**/appsettings.*.json
+**/secrets.json
+**/*firebase*.json
+**/env-list.json
