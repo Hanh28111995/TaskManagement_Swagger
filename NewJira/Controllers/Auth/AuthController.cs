@@ -16,8 +16,7 @@ namespace NewJira.Controllers.Auth
         {
             _authService = authService;
         }
-
-        // 1. Đăng nhập truyền thống (Email/Password)
+        
         [HttpPost("signin")]
         public async Task<IActionResult> Login([FromBody] UserLoginDto model)
         {
@@ -44,63 +43,72 @@ namespace NewJira.Controllers.Auth
                 "Đăng nhập truyền thống thành công",
                 responseDto));
         }
-
-        // 2. Đăng nhập bằng Firebase Phone OTP
-        [HttpPost("signin-firebase")]
-        public async Task<IActionResult> LoginWithFirebase([FromBody] FirebaseLoginDto model)
+                
+        [HttpPost("check-phone")]
+        public async Task<IActionResult> CheckPhone([FromQuery] string phone)
         {
-            var firebaseClaims = await _authService.VerifyFirebaseTokenAsync(model.IdToken);
-            if (firebaseClaims == null)
-            {
-                return BadRequest(new ResponseResultError<object>(
-                    "Xác thực Firebase Token thất bại hoặc không hợp lệ!"));
-            }
+            if (string.IsNullOrWhiteSpace(phone))
+                return BadRequest(new ResponseResultError<object>("Vui lòng nhập số điện thoại!"));
 
-            var user = await _authService.AuthenticateWithPhoneAsync(firebaseClaims.PhoneNumber);
-            if (user == null)
-            {
-                return BadRequest(new ResponseResultError<object>(
-                    "Số điện thoại này chưa được đăng ký trong hệ thống!"));
-            }
-
-            var jwtToken = _authService.GenerateJwtToken(user);
-
-            // Ánh xạ sang LoginResponseDto
-            var responseDto = new LoginResponseDto
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Roles = user.Role?.RoleName,
-                Avatar = user.Avatar,                
-                AccessToken = jwtToken
-            };
+            var user = await _authService.AuthenticateWithPhoneAsync(phone);
 
             return Ok(new ResponseResultSuccess<object>(
-                "Đăng nhập Firebase thành công",
-                responseDto));
+                user == null ? "Số chưa đăng ký" : "Số đã đăng ký",
+                new { isRegistered = user != null }));
         }
 
-        [HttpPost("validate-phone-code")]
-        public async Task<IActionResult> ValidatePhoneCode([FromBody] FirebaseLoginDto model)
-        {
-            var firebaseClaims = await _authService.VerifyFirebaseTokenAsync(model.IdToken);
-            if (firebaseClaims == null || string.IsNullOrWhiteSpace(firebaseClaims.PhoneNumber))
+        [HttpPost("validate-phone-code")]        
+            public async Task<IActionResult> ValidatePhoneCode([FromBody] FirebaseLoginDto model)
             {
-                return BadRequest(new ResponseResultError<object>(
-                    "Mã xác thực số điện thoại không hợp lệ hoặc đã hết hạn!"));
-            }
-
-            return Ok(new ResponseResultSuccess<object>(
-                "Xác thực số điện thoại thành công",
-                new
+                if (model == null || string.IsNullOrWhiteSpace(model.IdToken))
                 {
-                    phoneNumber = firebaseClaims.PhoneNumber,
-                    firebaseUid = firebaseClaims.Uid
-                }));
-        }
+                    return BadRequest(new ResponseResultError<object>(
+                        "Thiếu idToken!"));
+                }
 
-        // 3. Đăng ký tài khoản mới (CHỈ ADMIN MỚI ĐƯỢC PHÉP TẠO) + Gửi mail xác thực Firebase
-        [Authorize(Roles = "Admin")] // Khóa bảo mật: Phải có Token mang quyền Admin mới gọi được
+                // 1. Verify token Firebase — nếu OTP sai/hết hạn -> null
+                var firebaseClaims = await _authService.VerifyFirebaseTokenAsync(model.IdToken);
+                if (firebaseClaims == null || string.IsNullOrWhiteSpace(firebaseClaims.PhoneNumber))
+                {
+                    return BadRequest(new ResponseResultError<object>(
+                        "Mã xác thực số điện thoại không hợp lệ hoặc đã hết hạn!"));
+                }
+
+                // 2. Tra xem số này đã đăng ký trong hệ thống chưa
+                var user = await _authService.AuthenticateWithPhoneAsync(firebaseClaims.PhoneNumber);
+
+                // 3a. CHƯA đăng ký -> KHÔNG phải lỗi, trả isRegistered=false
+                //     để FE chuyển sang form đăng ký
+                if (user == null)
+                {
+                    return Ok(new ResponseResultSuccess<object>(
+                        "Số điện thoại hợp lệ nhưng chưa đăng ký tài khoản",
+                        new
+                        {
+                            isRegistered = false,
+                            phoneNumber = firebaseClaims.PhoneNumber,
+                            firebaseUid = firebaseClaims.Uid
+                        }));
+                }
+
+                // 3b. ĐÃ đăng ký -> trả cờ true + thông tin tối thiểu
+                return Ok(new ResponseResultSuccess<object>(
+                    "Số điện thoại đã đăng ký, vui lòng xác nhận đăng nhập",
+                    new
+                    {
+                        isRegistered = true,
+                        phoneNumber = firebaseClaims.PhoneNumber,
+                        firebaseUid = firebaseClaims.Uid,
+                        user = new
+                        {
+                            id = user.Id,
+                            name = user.Name,
+                            avatar = user.Avatar
+                        }
+                    }));
+            }           
+
+    [Authorize(Roles = "Admin")] // Khóa bảo mật: Phải có Token mang quyền Admin mới gọi được regisrter
         [HttpPost("signup")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {

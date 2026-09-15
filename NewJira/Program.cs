@@ -9,9 +9,10 @@ using NewJira.Application.Interfaces.Services;
 using NewJira.Infrastructure.Data;
 using NewJira.Infrastructure.Repositories;
 using NewJira.Infrastructure.Services;
-using System.Security.Claims;
+using NewJira.Hubs;
 using System.Security.Cryptography;
 using System.Text;
+using NewJira.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,12 +62,15 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IChatRealtimeService, ChatRealtimeService>();
+
+builder.Services.AddSignalR();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-//var jwtSecret = jwtSettings["Secret"]
-//    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
+var jwtSecret = jwtSettings["Secret"]
+    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
 
-var    jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
+//var    jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
 
 
 var jwtKey = SHA256.HashData(Encoding.UTF8.GetBytes(jwtSecret));
@@ -188,4 +192,5 @@ app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 app.Run();

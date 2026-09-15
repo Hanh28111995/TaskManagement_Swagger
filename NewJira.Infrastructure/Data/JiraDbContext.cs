@@ -73,5 +73,10 @@ public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext(
             .WithMany()
             .HasForeignKey(p => p.CreatorId)
             .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Project>()
+    .HasOne(p => p.Category)
+    .WithMany()
+    .HasForeignKey(p => p.CategoryId)
+    .OnDelete(DeleteBehavior.Restrict);
     }
 }

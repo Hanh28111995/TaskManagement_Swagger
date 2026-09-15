@@ -14,9 +14,10 @@ public class Project
 
     public int CategoryId { get; set; }
 
-    public Category? Category { get; set; }
-
     [ForeignKey("CategoryId")]
+
+    public Category? Category { get; set; }
+    
     public int CreatorId { get; set; }
 
     public User? Creator { get; set; }
