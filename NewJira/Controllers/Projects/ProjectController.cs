@@ -179,6 +179,7 @@ public class ProjectsController : ControllerBase
             Id = project.Id,
             ProjectName = project.ProjectName,         
             CategoryId = project.CategoryId,           
+            CreatorId = project.CreatorId
         };
     }
 

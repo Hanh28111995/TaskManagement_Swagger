@@ -5,6 +5,7 @@
 // Assembly location: D:\Project\TaskManagement_Swagger\publish-check-somee\NewJira.Application.dll
 
 using NewJira.Application.DTOs.Auth;
+using NewJira.Application.DTOs.Project;
 using System;
 
 #nullable enable
@@ -22,9 +23,7 @@ public class TaskResponseDto
 
     public Decimal TimeTrackingSpentHours { get; set; }
 
-    public Decimal TimeTrackingRemainingHours { get; set; }
-
-    public int ProjectId { get; set; }
+    public Decimal TimeTrackingRemainingHours { get; set; }    
 
     public int StatusId { get; set; }
 
@@ -39,6 +38,11 @@ public class TaskResponseDto
     public string? TaskTypeName { get; set; }
 
     public UserMemberListResponseDto? Assignee { get; set; }
+
+    public ProjectListResponseDto? Project { get; set; }
+
+
+    
 }
 
 

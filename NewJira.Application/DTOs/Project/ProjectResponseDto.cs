@@ -35,5 +35,7 @@ public class ProjectListResponseDto
     public string ProjectName { get; set; } = string.Empty;    
 
     public int CategoryId { get; set; }
-    
+
+    public int CreatorId { get; set; }
+
 }

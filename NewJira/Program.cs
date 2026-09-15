@@ -88,14 +88,18 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-var frontendUrl = builder.Configuration["Cors:FrontendUrl"]?.TrimEnd('/');
+var frontendUrlsString = builder.Configuration["Cors:FrontendUrl"];
+var allowedOrigins = !string.IsNullOrWhiteSpace(frontendUrlsString)
+    ? frontendUrlsString.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(url => url.Trim().TrimEnd('/')).ToArray()
+    : Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        if (!string.IsNullOrWhiteSpace(frontendUrl))
+        if (allowedOrigins.Length > 0)
         {
-            policy.WithOrigins(frontendUrl);
+            policy.WithOrigins(allowedOrigins);
         }
         else
         {
@@ -105,7 +109,7 @@ builder.Services.AddCors(options =>
         policy.AllowAnyHeader()
             .AllowAnyMethod();
 
-        if (!string.IsNullOrWhiteSpace(frontendUrl))
+        if (allowedOrigins.Length > 0)
         {
             policy.AllowCredentials();
         }

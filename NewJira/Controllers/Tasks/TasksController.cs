@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewJira.Application.DTOs.Common;
 using NewJira.Application.DTOs.Task;
 using NewJira.Application.DTOs.Auth;
+using NewJira.Application.DTOs.Project;
 using NewJira.Application.Interfaces.Repositories;
 using NewJira.Domain.Entities;
 
@@ -20,11 +22,21 @@ namespace NewJira.Controllers.Tasks
             _taskRepository = taskRepository;
         }
 
-        // 1. Lấy danh sách task theo Project ID
-        [HttpGet("get-all-task/{projectId}")]
-        public async Task<IActionResult> GetAllTasks(int projectId)
+        // 1. Lấy danh sách task (Có phân quyền theo Role)
+        [HttpGet("get-all-task")]
+        public async Task<IActionResult> GetAllTasks()
         {
-            var tasks = await _taskRepository.GetTaskByProjectIdAsync(projectId);
+            var tasks = await _taskRepository.GetAllTasksAsync();
+
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            // Nếu là Member, chỉ lấy các task được phân công cho chính user đó
+            if (role == "Member" && int.TryParse(userIdClaim, out int userId))
+            {
+                tasks = tasks.Where(t => t.AssigneeId == userId).ToList();
+            }
+
             var taskDtos = tasks.Select(MapToTaskResponseDto).ToList();
 
             return Ok(new ResponseResultSuccess<object>("Lấy danh sách task thành công", taskDtos));
@@ -44,10 +56,19 @@ namespace NewJira.Controllers.Tasks
             return Ok(new ResponseResultSuccess<object>("Lấy thông tin task thành công", taskDto));
         }
 
-        // 3. Tạo mới task cho dự án
+        // 3. Tạo mới task cho dự án (Tự động gán Assignee là user hiện tại nếu chưa có)
         [HttpPost("{projectId}/create-task")]
         public async Task<IActionResult> CreateTask(int projectId, [FromBody] CreateTaskDto model)
         {
+            if (!model.AssigneeId.HasValue || model.AssigneeId == 0)
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (int.TryParse(userIdClaim, out int currentUserId))
+                {
+                    model.AssigneeId = currentUserId;
+                }
+            }
+
             var newTask = new TaskItem
             {
                 TaskName = model.TaskName,
@@ -55,7 +76,7 @@ namespace NewJira.Controllers.Tasks
                 EstimateHours = model.EstimateHours,
                 TimeTrackingSpentHours = model.TimeTrackingSpentHours,
                 TimeTrackingRemainingHours = model.TimeTrackingRemainingHours,
-                ProjectId = projectId, // Gán trực tiếp projectId từ route
+                ProjectId = projectId,
                 StatusId = model.StatusId,
                 PriorityId = model.PriorityId,
                 TaskTypeId = model.TaskTypeId,
@@ -64,7 +85,6 @@ namespace NewJira.Controllers.Tasks
 
             await _taskRepository.AddTaskAsync(projectId, newTask);
 
-            // Lấy lại task vừa tạo kèm đầy đủ thông tin quan hệ
             var createdTask = await _taskRepository.GetTaskDetailByProjectIdAsync(projectId, newTask.Id);
             var taskDto = MapToTaskResponseDto(createdTask ?? newTask);
 
@@ -80,6 +100,8 @@ namespace NewJira.Controllers.Tasks
             {
                 return NotFound(new ResponseResultError<object>("Không tìm thấy task để cập nhật!"));
             }
+
+            if (!TryValidateTaskPermission(existingTask, out var errorResult)) return errorResult;
 
             existingTask.TaskName = model.TaskName;
             existingTask.Description = model.Description;
@@ -101,6 +123,11 @@ namespace NewJira.Controllers.Tasks
         [HttpPatch("{projectId}/update-task/{id}/status")]
         public async Task<IActionResult> UpdateTaskStatus(int projectId, int id, [FromBody] TaskStatusDto model)
         {
+            var existingTask = await _taskRepository.GetTaskDetailByProjectIdAsync(projectId, id);
+            if (existingTask == null) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
+
+            if (!TryValidateTaskPermission(existingTask, out var errorResult)) return errorResult;
+
             var success = await _taskRepository.UpdateTaskStatusAsync(projectId, id, model);
             if (!success) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
 
@@ -112,6 +139,11 @@ namespace NewJira.Controllers.Tasks
         [HttpPatch("{projectId}/update-task/{id}/assignee")]
         public async Task<IActionResult> UpdateTaskAssignee(int projectId, int id, [FromBody] TaskAssignmentDto model)
         {
+            var existingTask = await _taskRepository.GetTaskDetailByProjectIdAsync(projectId, id);
+            if (existingTask == null) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
+
+            if (!TryValidateTaskPermission(existingTask, out var errorResult)) return errorResult;
+
             var success = await _taskRepository.UpdateTaskAssignmentAsync(projectId, id, model);
             if (!success) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
 
@@ -123,6 +155,11 @@ namespace NewJira.Controllers.Tasks
         [HttpPatch("{projectId}/update-task/{id}/priority")]
         public async Task<IActionResult> UpdateTaskPriority(int projectId, int id, [FromBody] TaskPriorityDto model)
         {
+            var existingTask = await _taskRepository.GetTaskDetailByProjectIdAsync(projectId, id);
+            if (existingTask == null) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
+
+            if (!TryValidateTaskPermission(existingTask, out var errorResult)) return errorResult;
+
             var success = await _taskRepository.UpdateTaskPriorityAsync(projectId, id, model);
             if (!success) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
 
@@ -134,6 +171,11 @@ namespace NewJira.Controllers.Tasks
         [HttpPatch("{projectId}/update-task/{id}/task-type")]
         public async Task<IActionResult> UpdateTaskType(int projectId, int id, [FromBody] TaskTypeDto model)
         {
+            var existingTask = await _taskRepository.GetTaskDetailByProjectIdAsync(projectId, id);
+            if (existingTask == null) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
+
+            if (!TryValidateTaskPermission(existingTask, out var errorResult)) return errorResult;
+
             var success = await _taskRepository.UpdateTaskTypeAsync(projectId, id, model);
             if (!success) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
 
@@ -145,6 +187,11 @@ namespace NewJira.Controllers.Tasks
         [HttpPatch("{projectId}/update-task/{id}/estimate")]
         public async Task<IActionResult> UpdateTaskEstimate(int projectId, int id, [FromBody] TaskEstimateDto model)
         {
+            var existingTask = await _taskRepository.GetTaskDetailByProjectIdAsync(projectId, id);
+            if (existingTask == null) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
+
+            if (!TryValidateTaskPermission(existingTask, out var errorResult)) return errorResult;
+
             var success = await _taskRepository.UpdateTaskEstimateAsync(projectId, id, model);
             if (!success) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
 
@@ -156,6 +203,11 @@ namespace NewJira.Controllers.Tasks
         [HttpPatch("{projectId}/update-task/{id}/time-tracking")]
         public async Task<IActionResult> UpdateTaskTimeTracking(int projectId, int id, [FromBody] TaskTimeTrackingDto model)
         {
+            var existingTask = await _taskRepository.GetTaskDetailByProjectIdAsync(projectId, id);
+            if (existingTask == null) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
+
+            if (!TryValidateTaskPermission(existingTask, out var errorResult)) return errorResult;
+
             var success = await _taskRepository.UpdateTaskTimeTrackingAsync(projectId, id, model);
             if (!success) return NotFound(new ResponseResultError<object>("Không tìm thấy task!"));
 
@@ -173,8 +225,40 @@ namespace NewJira.Controllers.Tasks
                 return NotFound(new ResponseResultError<object>("Không tìm thấy task để xóa!"));
             }
 
+            if (!TryValidateTaskPermission(existingTask, out var errorResult)) return errorResult;
+
             await _taskRepository.DeleteTaskAsync(projectId, id);
             return Ok(new ResponseResultSuccess<object>("Xóa task thành công"));
+        }
+
+        // --- HÀM HỖ TRỢ KIỂM TRA QUYỀN (PERMISSION HELPER) ---
+        private bool TryValidateTaskPermission(TaskItem task, out IActionResult errorResult)
+        {
+            errorResult = null;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            // Admin được phép thao tác trên mọi task mà không cần thỏa điều kiện Assignee
+            if (role == "Admin")
+            {
+                return true;
+            }
+
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+            {
+                errorResult = Unauthorized(new ResponseResultError<object>("Không thể xác định danh tính người dùng!"));
+                return false;
+            }
+
+            // Các role khác bắt buộc UserId phải khớp với AssigneeId của task
+            if (task.AssigneeId != currentUserId)
+            {
+                errorResult = StatusCode(StatusCodes.Status403Forbidden,
+                    new ResponseResultError<object>("Bạn không có quyền thực hiện thao tác này vì bạn không phải là người được phân công (Assignee)!"));
+                return false;
+            }
+
+            return true;
         }
 
         // --- HÀM HỖ TRỢ ÁNH XẠ (MAPPER HELPER) ---
@@ -189,8 +273,7 @@ namespace NewJira.Controllers.Tasks
                 Description = task.Description,
                 EstimateHours = task.EstimateHours,
                 TimeTrackingSpentHours = task.TimeTrackingSpentHours,
-                TimeTrackingRemainingHours = task.TimeTrackingRemainingHours,
-                ProjectId = task.ProjectId,
+                TimeTrackingRemainingHours = task.TimeTrackingRemainingHours,                
                 StatusId = task.StatusId,
                 PriorityId = task.PriorityId,
                 PriorityName = task.Priority?.PriorityName,
@@ -201,6 +284,11 @@ namespace NewJira.Controllers.Tasks
                     Id = task.Assignee.Id,
                     Name = task.Assignee.Name,
                     Avatar = task.Assignee.Avatar ?? string.Empty
+                } : null,
+                Project = task.Project != null ? new ProjectListResponseDto
+                {
+                    Id = task.Project.Id,
+                    ProjectName = task.Project.ProjectName ?? string.Empty
                 } : null
             };
         }
