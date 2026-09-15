@@ -29,6 +29,7 @@ public class TaskItem
     public Decimal TimeTrackingRemainingHours { get; set; }
 
     public int ProjectId { get; set; }
+
     [ForeignKey("ProjectId")]
     public Project? Project { get; set; }
 

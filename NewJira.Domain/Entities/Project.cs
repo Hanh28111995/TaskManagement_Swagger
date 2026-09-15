@@ -1,5 +1,6 @@
 ﻿
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 namespace NewJira.Domain.Entities;
 
 public class Project
@@ -13,6 +14,9 @@ public class Project
 
     public int CategoryId { get; set; }
 
+    public Category? Category { get; set; }
+
+    [ForeignKey("CategoryId")]
     public int CreatorId { get; set; }
 
     public User? Creator { get; set; }
