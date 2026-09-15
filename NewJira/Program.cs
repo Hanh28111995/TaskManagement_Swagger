@@ -49,6 +49,7 @@ if (!string.IsNullOrWhiteSpace(firebaseCredentialsPath) && File.Exists(firebaseC
 builder.Services.AddDbContext<JiraDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectUserRepository, ProjectUserRepository>();

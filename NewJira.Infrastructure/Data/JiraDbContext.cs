@@ -15,6 +15,8 @@ public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext(
 {
     public DbSet<User> Users => this.Set<User>();
 
+    public DbSet<Role> Roles => Set<Role>();
+
     public DbSet<Project> Projects => this.Set<Project>();
 
     public DbSet<TaskItem> TaskItems => this.Set<TaskItem>();
@@ -32,19 +34,23 @@ public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext(
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+     
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasOne(u => u.Role)
+                  .WithMany()
+                  .HasForeignKey(u => u.RoleId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
 
-        // Cấu hình bảng TaskItem và quan hệ với Project
         modelBuilder.Entity<TaskItem>(entity =>
         {
-            entity.HasKey(t => t.Id);
-
             entity.HasOne(t => t.Project)
-                  .WithMany(p => p.Tasks) // Đảm bảo bên Project có ICollection<TaskItem> Tasks
+                  .WithMany(p => p.Tasks)
                   .HasForeignKey(t => t.ProjectId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Cấu hình bảng trung gian ProjectUser
         modelBuilder.Entity<ProjectUser>(entity =>
         {
             entity.HasKey(pu => new { pu.MembersId, pu.ProjectsId });
@@ -54,11 +60,10 @@ public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext(
                   .HasForeignKey(pu => pu.MembersId);
 
             entity.HasOne(pu => pu.Project)
-                  .WithMany(p => p.ProjectUsers) // Đảm bảo bên Project có ICollection<ProjectUser> ProjectUsers
+                  .WithMany(p => p.ProjectUsers)
                   .HasForeignKey(pu => pu.ProjectsId);
         });
 
-        // Các cấu hình precision và creator hiện tại của bạn...
         modelBuilder.Entity<TaskItem>().Property(t => t.EstimateHours).HasPrecision(18, 2);
         modelBuilder.Entity<TaskItem>().Property(t => t.TimeTrackingSpentHours).HasPrecision(18, 2);
         modelBuilder.Entity<TaskItem>().Property(t => t.TimeTrackingRemainingHours).HasPrecision(18, 2);

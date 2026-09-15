@@ -44,8 +44,7 @@ public class AuthService : IAuthService
     public string GenerateJwtToken(User user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["Secret"] ?? "SuperSecretKeyWithAtLeast32BytesLength!";
-        // Sửa thành:
+        var secretKey = jwtSettings["Secret"] ?? "SuperSecretKeyWithAtLeast32BytesLength!";        
         var key = SHA256.HashData(Encoding.UTF8.GetBytes(secretKey));
 
         var claims = new[]
@@ -53,7 +52,7 @@ public class AuthService : IAuthService
             new Claim("Id", user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new Claim("Name", user.Name ?? string.Empty),
-            new Claim("role", user.Roles ?? string.Empty) 
+            new Claim("role", user.Role?.RoleName ?? "Member") 
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -108,7 +107,7 @@ public class AuthService : IAuthService
             PasswordHash = "hashed_password",
             Name = name,
             PhoneNumber = phoneNumber,
-            Roles = role
+            Role = new Role { RoleName = role }
         };
 
         await _userRepository.AddUserAsync(newUser);

@@ -35,7 +35,7 @@ namespace NewJira.Controllers.Auth
             {
                 Id = user.Id,                
                 Name = user.Name,
-                Roles = user.Roles,
+                Roles = user.Role?.RoleName ?? "Member",
                 Avatar = user.Avatar,                
                 AccessToken = token
             };
@@ -70,7 +70,7 @@ namespace NewJira.Controllers.Auth
             {
                 Id = user.Id,
                 Name = user.Name,
-                Roles = user.Roles,
+                Roles = user.Role?.RoleName,
                 Avatar = user.Avatar,                
                 AccessToken = jwtToken
             };

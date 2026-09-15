@@ -7,8 +7,9 @@
 using FirebaseAdmin.Messaging;
 using System;
 using System.Collections.Generic;
-using System.Net.NetworkInformation;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Net.NetworkInformation;
 #nullable enable
 namespace NewJira.Domain.Entities;
 
@@ -28,7 +29,7 @@ public class TaskItem
     public Decimal TimeTrackingRemainingHours { get; set; }
 
     public int ProjectId { get; set; }
-
+    [ForeignKey("ProjectId")]
     public Project? Project { get; set; }
 
     public int StatusId { get; set; }

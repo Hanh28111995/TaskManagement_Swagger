@@ -28,8 +28,8 @@ namespace NewJira.Controllers.Tasks
         {
             var tasks = await _taskRepository.GetAllTasksAsync();
 
-            var role = User.FindFirst(ClaimTypes.Role)?.Value;
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = User.FindFirst("role")?.Value;
+            var userIdClaim = User.FindFirst("Id")?.Value;
 
             // Nếu là Member, chỉ lấy các task được phân công cho chính user đó
             if (role == "Member" && int.TryParse(userIdClaim, out int userId))
@@ -62,7 +62,7 @@ namespace NewJira.Controllers.Tasks
         {
             if (!model.AssigneeId.HasValue || model.AssigneeId == 0)
             {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userIdClaim = User.FindFirst("Id")?.Value;
                 if (int.TryParse(userIdClaim, out int currentUserId))
                 {
                     model.AssigneeId = currentUserId;
@@ -235,11 +235,11 @@ namespace NewJira.Controllers.Tasks
         private bool TryValidateTaskPermission(TaskItem task, out IActionResult errorResult)
         {
             errorResult = null;
-            var role = User.FindFirst(ClaimTypes.Role)?.Value;
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = User.FindFirst("role")?.Value;
+            var userIdClaim = User.FindFirst("Id")?.Value;
 
             // Admin được phép thao tác trên mọi task mà không cần thỏa điều kiện Assignee
-            if (role == "Admin")
+            if ((role == "Admin")|| (role == "Manager"))
             {
                 return true;
             }

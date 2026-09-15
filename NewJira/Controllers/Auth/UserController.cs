@@ -39,7 +39,7 @@ namespace NewJira.Controllers.Auth
             {
                 user.Id,
                 user.Name,
-                user.Roles
+                user.Role?.RoleName 
             });
 
             return Ok(new ResponseResultSuccess<object>(
