@@ -21,6 +21,6 @@ public class ResponseResultSuccess<T> : ResponseResult<T>
     {
         this.IsSuccess = true;
         this.Message = message;
-        this.ResultObject = result;
+        this.Content = result;
     }
 }

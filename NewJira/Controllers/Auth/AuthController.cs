@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NewJira.Application.DTOs.Auth;
 using NewJira.Application.DTOs.Common;
 using NewJira.Application.Interfaces.Services;
+using Newtonsoft.Json.Linq;
 
 namespace NewJira.Controllers.Auth
 {
@@ -90,22 +91,20 @@ namespace NewJira.Controllers.Auth
                             firebaseUid = firebaseClaims.Uid
                         }));
                 }
+            var token = _authService.GenerateJwtToken(user);
+            var responseDto = new LoginResponseDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Roles = user.Role?.RoleName ?? "Member",
+                Avatar = user.Avatar,
+                AccessToken = token
+            };
+            // 3b. ĐÃ đăng ký -> trả cờ true + thông tin tối thiểu
 
-                // 3b. ĐÃ đăng ký -> trả cờ true + thông tin tối thiểu
-                return Ok(new ResponseResultSuccess<object>(
-                    "Số điện thoại đã đăng ký, vui lòng xác nhận đăng nhập",
-                    new
-                    {
-                        isRegistered = true,
-                        phoneNumber = firebaseClaims.PhoneNumber,
-                        firebaseUid = firebaseClaims.Uid,
-                        user = new
-                        {
-                            id = user.Id,
-                            name = user.Name,
-                            avatar = user.Avatar
-                        }
-                    }));
+            return Ok(new ResponseResultSuccess<object>(
+                "Xác thực OTP thành công",
+                responseDto));            
             }           
 
     [Authorize(Roles = "Admin")] // Khóa bảo mật: Phải có Token mang quyền Admin mới gọi được regisrter

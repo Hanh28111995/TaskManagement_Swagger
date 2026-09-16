@@ -13,5 +13,5 @@ public class ResponseResult<T>
 
     public string Message { get; set; } = string.Empty;
 
-    public T? ResultObject { get; set; }
+    public T? Content { get; set; }
 }

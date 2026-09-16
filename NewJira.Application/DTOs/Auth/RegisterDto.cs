@@ -16,6 +16,8 @@ public class RegisterDto
     [Required(ErrorMessage = "Tên hiển thị không được để trống")]
     public string Name { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Số điện thoại không được để trống")]
+    [Phone(ErrorMessage = "Số điện thoại không đúng định dạng")]
     public string? PhoneNumber { get; set; }
 
     public string? Role { get; set; } // Ví dụ: "Admin" hoặc "Member"

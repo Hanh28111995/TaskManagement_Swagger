@@ -3,8 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using NewJira.Application.Interfaces.Repositories;
 using NewJira.Application.Interfaces.Services;
+using NewJira.Application.Helpers;
 using NewJira.Domain.Entities;
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -32,39 +32,29 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetUserByEmailAsync(email);
         if (user == null) return null;
 
-        // Lưu ý: Trong thực tế nên dùng PasswordHasher để kiểm tra, ở đây check theo dữ liệu thô/hash tùy DB hiện tại của bạn
-        if (user.Password != password && user.PasswordHash != password)
+        if (!string.IsNullOrEmpty(user.PasswordHash) && user.PasswordHash != "hashed_password"
+           && PasswordHelper.Verify(password, user.PasswordHash))
         {
-            return null;
+            return user;
         }
 
-        return user;
+        if (user.Password != null && user.Password == password)
+        {
+            user.PasswordHash = PasswordHelper.Hash(password);
+            user.Password = null;
+            await _userRepository.UpdateUserAsync(user);
+            await _userRepository.SaveUserChangesAsync();
+            return user;
+        }
+        
+        return null;
     }
 
     public string GenerateJwtToken(User user)
     {
-        var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["Secret"] ?? "SuperSecretKeyWithAtLeast32BytesLength!";        
-        var key = SHA256.HashData(Encoding.UTF8.GetBytes(secretKey));
-
-        var claims = new[]
-        {
-            new Claim("Id", user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
-            new Claim("Name", user.Name ?? string.Empty),
-            new Claim("role", user.Role?.RoleName ?? "Member") 
-        };
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddDays(7),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+        var secretKey = _configuration["JwtSettings:Secret"]
+                        ?? "SuperSecretKeyWithAtLeast32BytesLength!";
+        return JwtHelper.GenerateToken(user, secretKey);
     }
 
     public async Task<FirebaseTokenClaims?> VerifyFirebaseTokenAsync(string idToken)
@@ -73,14 +63,15 @@ public class AuthService : IAuthService
         {
             FirebaseToken decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(idToken);
 
-            // Lấy thông tin số điện thoại hoặc email từ Firebase claims nếu có
-            string? phoneNumber = decodedToken.Claims.TryGetValue("phone_number", out var phone) ? phone.ToString() : null;
+            string? phoneNumber = decodedToken.Claims.TryGetValue("phone_number", out var phone)
+                ? phone.ToString() : null;
 
             return new FirebaseTokenClaims
             {
                 Uid = decodedToken.Uid,
                 PhoneNumber = phoneNumber,
-                Email = decodedToken.Claims.TryGetValue("email", out var email) ? email.ToString() : null
+                Email = decodedToken.Claims.TryGetValue("email", out var email)
+                    ? email.ToString() : null
             };
         }
         catch
@@ -92,30 +83,38 @@ public class AuthService : IAuthService
     public async Task<User?> AuthenticateWithPhoneAsync(string phoneNumber)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber)) return null;
-        return await _userRepository.GetUserByPhoneNumberAsync(phoneNumber);
+
+        return await _userRepository.GetUserByPhoneNumberAsync( PhoneHelper.NormalizeToLocal(phoneNumber));
     }
 
     public async Task<User?> RegisterAsync(string email, string password, string name, string phoneNumber, string role)
     {
         var existingUser = await _userRepository.GetUserByEmailAsync(email);
-        if (existingUser != null) return null; // Email đã tồn tại
+        if (existingUser != null) return null; 
 
         var newUser = new User
         {
             Email = email,
-            Password = password, // Hoặc băm mật khẩu tại đây
-            PasswordHash = "hashed_password",
+            Password = password, 
+            PasswordHash = PasswordHelper.Hash(password),
             Name = name,
-            PhoneNumber = phoneNumber,
-            Role = new Role { RoleName = role }
+            PhoneNumber = PhoneHelper.NormalizeToLocal(phoneNumber),
+            RoleId = ResolveRoleId(role),
         };
 
         await _userRepository.AddUserAsync(newUser);
         await _userRepository.SaveUserChangesAsync();
-
-        // Gửi email thông báo / xác thực sau khi tạo thành công
+        
         await _emailService.SendEmailAsync(email, "Chào mừng đến với NewJira", $"Tài khoản của bạn đã được tạo thành công với vai trò: {role}.");
 
         return newUser;
     }
+
+    // Thêm vào AuthService: resolve RoleId
+    private static int ResolveRoleId(string role) => role?.ToLower() switch
+    {
+        "admin" => 1,
+        "manager" => 2,
+        _ => 3, // Member
+    };
 }
