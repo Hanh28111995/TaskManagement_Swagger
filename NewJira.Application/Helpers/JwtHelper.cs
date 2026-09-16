@@ -9,7 +9,7 @@ namespace NewJira.Application.Helpers
 {
     public static class JwtHelper
     {        
-        public static string GenerateToken(User user, string secretKey, int expiryDays = 7)
+        public static string GenerateToken(User user, string secretKey, int expiryMinutes = 60)
         {
             var key = SHA256.HashData(Encoding.UTF8.GetBytes(secretKey));
 
@@ -24,7 +24,7 @@ namespace NewJira.Application.Helpers
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(expiryDays),
+                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)

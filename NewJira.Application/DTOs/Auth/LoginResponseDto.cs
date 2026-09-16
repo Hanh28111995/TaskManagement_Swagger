@@ -14,7 +14,11 @@ public class LoginResponseDto
 
   public string? PhoneNumber { get; set; }
 
-  public string AccessToken { get; set; } = string.Empty;
+  public string AccessToken { get; set; } = string.Empty; 
 }
 
 
+public class RefreshTokenRequestDto
+{
+    public string RefreshToken { get; set; } = string.Empty;
+}

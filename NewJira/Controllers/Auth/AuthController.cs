@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Authorization; // Cần thiết cho [Authorize]
+using Microsoft.AspNetCore.Authorization; 
 using Microsoft.AspNetCore.Mvc;
 using NewJira.Application.DTOs.Auth;
 using NewJira.Application.DTOs.Common;
 using NewJira.Application.Interfaces.Services;
-using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.Hosting;
 
 namespace NewJira.Controllers.Auth
 {
@@ -12,12 +12,17 @@ namespace NewJira.Controllers.Auth
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly ITokenService _tokenService;
 
-        public AuthController(IAuthService authService)
+        private readonly IWebHostEnvironment _env;
+
+        public AuthController(IAuthService authService, ITokenService tokenService, IWebHostEnvironment env)
         {
             _authService = authService;
+            _tokenService = tokenService;
+            _env = env;
         }
-        
+
         [HttpPost("signin")]
         public async Task<IActionResult> Login([FromBody] UserLoginDto model)
         {
@@ -28,23 +33,24 @@ namespace NewJira.Controllers.Auth
                     "Email hoặc mật khẩu không chính xác!"));
             }
 
-            var token = _authService.GenerateJwtToken(user);
+            var tokens = await _tokenService.IssueTokensAsync(user);
 
-            // Ánh xạ sang LoginResponseDto
             var responseDto = new LoginResponseDto
             {
-                Id = user.Id,                
+                Id = user.Id,
                 Name = user.Name,
                 Roles = user.Role?.RoleName ?? "Member",
-                Avatar = user.Avatar,                
-                AccessToken = token
+                Avatar = user.Avatar,
+                PhoneNumber = user.PhoneNumber,
+                Email = user.Email,
+                AccessToken = tokens.accessToken,
             };
 
             return Ok(new ResponseResultSuccess<object>(
                 "Đăng nhập truyền thống thành công",
                 responseDto));
         }
-                
+
         [HttpPost("check-phone")]
         public async Task<IActionResult> CheckPhone([FromQuery] string phone)
         {
@@ -58,39 +64,33 @@ namespace NewJira.Controllers.Auth
                 new { isRegistered = user != null }));
         }
 
-        [HttpPost("validate-phone-code")]        
-            public async Task<IActionResult> ValidatePhoneCode([FromBody] FirebaseLoginDto model)
+        [HttpPost("validate-phone-code")]
+        public async Task<IActionResult> ValidatePhoneCode([FromBody] FirebaseLoginDto model)
+        {
+            if (model == null || string.IsNullOrWhiteSpace(model.IdToken))
             {
-                if (model == null || string.IsNullOrWhiteSpace(model.IdToken))
-                {
-                    return BadRequest(new ResponseResultError<object>(
-                        "Thiếu idToken!"));
-                }
-
-                // 1. Verify token Firebase — nếu OTP sai/hết hạn -> null
-                var firebaseClaims = await _authService.VerifyFirebaseTokenAsync(model.IdToken);
-                if (firebaseClaims == null || string.IsNullOrWhiteSpace(firebaseClaims.PhoneNumber))
-                {
-                    return BadRequest(new ResponseResultError<object>(
-                        "Mã xác thực số điện thoại không hợp lệ hoặc đã hết hạn!"));
-                }
-
-                // 2. Tra xem số này đã đăng ký trong hệ thống chưa
-                var user = await _authService.AuthenticateWithPhoneAsync(firebaseClaims.PhoneNumber);
-
-                // 3a. CHƯA đăng ký -> KHÔNG phải lỗi, trả isRegistered=false
-                //     để FE chuyển sang form đăng ký
-                if (user == null)
-                {
-                    return Ok(new ResponseResultSuccess<object>(
-                        "Số điện thoại hợp lệ nhưng chưa đăng ký tài khoản",
-                        new
-                        {
-                            isRegistered = false,
-                            phoneNumber = firebaseClaims.PhoneNumber,
-                            firebaseUid = firebaseClaims.Uid
-                        }));
-                }
+                return BadRequest(new ResponseResultError<object>(
+                    "Thiếu idToken!"));
+            }            
+            var firebaseClaims = await _authService.VerifyFirebaseTokenAsync(model.IdToken);
+            if (firebaseClaims == null || string.IsNullOrWhiteSpace(firebaseClaims.PhoneNumber))
+            {
+                return BadRequest(new ResponseResultError<object>(
+                    "Mã xác thực số điện thoại không hợp lệ hoặc đã hết hạn!"));
+            }            
+            var user = await _authService.AuthenticateWithPhoneAsync(firebaseClaims.PhoneNumber);
+            
+            if (user == null)
+            {
+                return Ok(new ResponseResultSuccess<object>(
+                    "Số điện thoại hợp lệ nhưng chưa đăng ký tài khoản",
+                    new
+                    {
+                        isRegistered = false,
+                        phoneNumber = firebaseClaims.PhoneNumber,
+                        firebaseUid = firebaseClaims.Uid
+                    }));
+            }
             var token = _authService.GenerateJwtToken(user);
             var responseDto = new LoginResponseDto
             {
@@ -99,18 +99,18 @@ namespace NewJira.Controllers.Auth
                 Roles = user.Role?.RoleName ?? "Member",
                 Avatar = user.Avatar,
                 AccessToken = token
-            };
-            // 3b. ĐÃ đăng ký -> trả cờ true + thông tin tối thiểu
+            };            
 
             return Ok(new ResponseResultSuccess<object>(
                 "Xác thực OTP thành công",
-                responseDto));            
-            }           
+                responseDto));
+        }
 
-    [Authorize(Roles = "Admin")] // Khóa bảo mật: Phải có Token mang quyền Admin mới gọi được regisrter
+        [Authorize(Roles = "Admin")] // Khóa bảo mật: Phải có Token mang quyền Admin mới gọi được regisrter
         [HttpPost("signup")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
+
             var result = await _authService.RegisterAsync(
                 model.Email,
                 model.Password,
@@ -128,6 +128,49 @@ namespace NewJira.Controllers.Auth
             return Ok(new ResponseResultSuccess<object>(
                 "Tạo tài khoản thành công! Đã gửi email xác thực.",
                 result));
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return BadRequest(new ResponseResultError<object>("Thiếu refresh token!"));
+
+            var tokens = await _tokenService.RefreshAsync(refreshToken);
+            if (tokens == null)
+                return Unauthorized(new ResponseResultError<object>("Phiên đăng nhập hết hạn!"));
+
+            SetRefreshTokenCookie(tokens.Value.refreshToken);   // xoay vòng cookie
+            var newToken = new RefreshTokenRequestDto
+            {
+                RefreshToken = tokens.Value.accessToken
+            };
+            return Ok(new ResponseResultSuccess<object>("Cấp token mới thành công", newToken));
+        }
+
+
+        [HttpPost("revoke")]
+        public async Task<IActionResult> Revoke()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (!string.IsNullOrWhiteSpace(refreshToken))
+                await _tokenService.RevokeAsync(refreshToken);
+
+            Response.Cookies.Delete("refreshToken");
+            return Ok(new ResponseResultSuccess<object>("Đã đăng xuất", null));
+        }
+
+        private void SetRefreshTokenCookie(string refreshToken)
+        {
+            Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,        // dev; production cân nhắc Strict
+                Secure = !_env.IsDevelopment(), // bật Secure khi deploy https
+                Path = "/",
+                Expires = DateTime.UtcNow.AddDays(14)
+            });
         }
     }
 }

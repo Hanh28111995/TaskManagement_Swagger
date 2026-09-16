@@ -13,6 +13,7 @@ namespace NewJira.Infrastructure.Data;
 
 public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext((DbContextOptions)options)
 {
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<User> Users => this.Set<User>();
 
     public DbSet<Role> Roles => Set<Role>();
@@ -41,6 +42,15 @@ public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext(
                   .WithMany()
                   .HasForeignKey(u => u.RoleId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasIndex(t => t.TokenHash).IsUnique();
+            entity.HasOne(t => t.User)
+                  .WithMany()
+                  .HasForeignKey(t => t.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<TaskItem>(entity =>

@@ -3,6 +3,7 @@ using NewJira.Application.DTOs.Task;
 using NewJira.Domain.Entities;
 using NewJira.Infrastructure.Data;
 
+
 public class TaskRepository : ITaskRepository
 {
     private readonly JiraDbContext _context;
