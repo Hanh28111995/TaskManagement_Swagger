@@ -33,12 +33,14 @@ public class ChatRepository : IChatRepository
         var room = new ChatRoom
         {
             Type = "Direct",
+            CreatedById = userAId, 
             Members = new List<ChatRoomMember>
-            {
-                new() { UserId = userAId },
-                new() { UserId = userBId }
-            }
+        {
+            new() { UserId = userAId },
+            new() { UserId = userBId }
+        }
         };
+
         _context.ChatRooms.Add(room);
         await _context.SaveChangesAsync();
         return room;
