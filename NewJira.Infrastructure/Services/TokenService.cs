@@ -13,7 +13,7 @@ public class TokenService : ITokenService
     private readonly IRefreshTokenRepository _refreshRepo;
     private readonly IUserRepository _userRepo;
     private readonly IConfiguration _config;
-    private static readonly TimeSpan RefreshLifetime = TimeSpan.FromDays(14);
+    private static readonly TimeSpan RefreshLifetime = TimeSpan.FromDays(7);
 
     public TokenService(IRefreshTokenRepository refreshRepo, IUserRepository userRepo, IConfiguration config)
     {
@@ -26,9 +26,8 @@ public class TokenService : ITokenService
                              ?? "SuperSecretKeyWithAtLeast32BytesLength!";
 
     public async Task<(string accessToken, string refreshToken)> IssueTokensAsync(User user)
-    {
-        // Access token: JWT ngắn hạn (30 phút)
-        var accessToken = JwtHelper.GenerateToken(user, Secret, expiryMinutes: 30);
+    {        
+        var accessToken = JwtHelper.GenerateToken(user, Secret);
 
         // Refresh token: chuỗi ngẫu nhiên, chỉ lưu HASH trong DB
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -51,8 +50,7 @@ public class TokenService : ITokenService
         var tokenHash = HashToken(refreshToken);
         var stored = await _refreshRepo.GetByHashAsync(tokenHash);
         if (stored == null) return null;
-
-        // 🔴 REUSE DETECTION: token đã revoke mà còn được dùng -> kẻ cắp -> đá hết phiên
+        
         if (stored.RevokedAt != null)
         {
             await _refreshRepo.RevokeAllForUserAsync(stored.UserId);

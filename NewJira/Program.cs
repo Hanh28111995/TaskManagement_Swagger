@@ -12,7 +12,7 @@ using NewJira.Infrastructure.Services;
 using NewJira.Hubs;
 using System.Security.Cryptography;
 using System.Text;
-using NewJira.Application.Services;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,7 +64,8 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IChatRealtimeService, ChatRealtimeService>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
+
 
 builder.Services.AddSignalR();
 
@@ -93,6 +94,17 @@ builder.Services
             RoleClaimType = "role", // <--- Đã sửa từ ClaimTypes.Role thành "role" để khớp token
             ValidateIssuer = false,
             ValidateAudience = false,
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/chat"))
+                    context.Token = accessToken;
+                return Task.CompletedTask;
+            }
         };
     });
 

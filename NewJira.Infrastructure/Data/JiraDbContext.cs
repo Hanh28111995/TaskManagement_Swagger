@@ -13,6 +13,9 @@ namespace NewJira.Infrastructure.Data;
 
 public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext((DbContextOptions)options)
 {
+    public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
+    public DbSet<ChatRoomMember> ChatRoomMembers => Set<ChatRoomMember>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<User> Users => this.Set<User>();
 
@@ -35,7 +38,35 @@ public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext(
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-     
+
+        modelBuilder.Entity<ChatRoomMember>(entity =>
+        {
+            entity.HasKey(m => new { m.RoomId, m.UserId });
+
+            entity.HasOne(m => m.Room).WithMany(r => r.Members)
+                  .HasForeignKey(m => m.RoomId).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.User).WithMany()
+                  .HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasOne(m => m.Room).WithMany(r => r.Messages)
+                  .HasForeignKey(m => m.RoomId).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.Sender).WithMany()
+                  .HasForeignKey(m => m.SenderId).OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(m => new { m.RoomId, m.SentAt });
+        });
+
+        modelBuilder.Entity<ChatRoom>(entity =>
+        {
+            entity.HasOne(r => r.CreatedBy).WithMany()
+                  .HasForeignKey(r => r.CreatedById).OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasOne(u => u.Role)

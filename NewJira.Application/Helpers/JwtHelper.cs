@@ -8,8 +8,9 @@ using NewJira.Domain.Entities;
 namespace NewJira.Application.Helpers
 {
     public static class JwtHelper
-    {        
-        public static string GenerateToken(User user, string secretKey, int expiryMinutes = 60)
+    {
+        public const int DefaultExpiryMinutes = 60;
+        public static string GenerateToken(User user, string secretKey, int expiryMinutes = DefaultExpiryMinutes)
         {
             var key = SHA256.HashData(Encoding.UTF8.GetBytes(secretKey));
 

@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authorization; 
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using NewJira.Application.DTOs.Auth;
 using NewJira.Application.DTOs.Common;
 using NewJira.Application.Interfaces.Services;
-using Microsoft.AspNetCore.Hosting;
+using Newtonsoft.Json.Linq;
 
 namespace NewJira.Controllers.Auth
 {
@@ -45,7 +46,7 @@ namespace NewJira.Controllers.Auth
                 Email = user.Email,
                 AccessToken = tokens.accessToken,
             };
-
+            SetRefreshTokenCookie(tokens.refreshToken);   
             return Ok(new ResponseResultSuccess<object>(
                 "Đăng nhập truyền thống thành công",
                 responseDto));
@@ -91,15 +92,18 @@ namespace NewJira.Controllers.Auth
                         firebaseUid = firebaseClaims.Uid
                     }));
             }
-            var token = _authService.GenerateJwtToken(user);
+            var tokens = await _tokenService.IssueTokensAsync(user);
             var responseDto = new LoginResponseDto
             {
                 Id = user.Id,
                 Name = user.Name,
                 Roles = user.Role?.RoleName ?? "Member",
                 Avatar = user.Avatar,
-                AccessToken = token
-            };            
+                PhoneNumber = user.PhoneNumber,
+                Email = user.Email,
+                AccessToken = tokens.accessToken
+            };
+            SetRefreshTokenCookie(tokens.refreshToken);
 
             return Ok(new ResponseResultSuccess<object>(
                 "Xác thực OTP thành công",
@@ -166,10 +170,10 @@ namespace NewJira.Controllers.Auth
             Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
             {
                 HttpOnly = true,
-                SameSite = SameSiteMode.Lax,        // dev; production cân nhắc Strict
-                Secure = !_env.IsDevelopment(), // bật Secure khi deploy https
+                SameSite = SameSiteMode.None,        
+                Secure = true,
                 Path = "/",
-                Expires = DateTime.UtcNow.AddDays(14)
+                Expires = DateTime.UtcNow.AddDays(7)
             });
         }
     }

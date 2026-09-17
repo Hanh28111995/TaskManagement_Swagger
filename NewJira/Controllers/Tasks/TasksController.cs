@@ -275,6 +275,7 @@ namespace NewJira.Controllers.Tasks
                 TimeTrackingSpentHours = task.TimeTrackingSpentHours,
                 TimeTrackingRemainingHours = task.TimeTrackingRemainingHours,                
                 StatusId = task.StatusId,
+                StatusName = task.Status?.StatusName,
                 PriorityId = task.PriorityId,
                 PriorityName = task.Priority?.PriorityName,
                 TaskTypeId = task.TaskTypeId,
