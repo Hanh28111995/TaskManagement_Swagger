@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 namespace NewJira.API.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
-    [Authorize(Roles = "Admin")] 
+    [ApiController]    
     public class RolesController : ControllerBase
     {
         private readonly IRoleRepository _roleRepository;
@@ -21,7 +20,7 @@ namespace NewJira.API.Controllers
             _roleRepository = roleRepository;
         }
 
-        // GET: api/roles
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetAllRoles()
         {
@@ -32,7 +31,7 @@ namespace NewJira.API.Controllers
                 roles));
         }
 
-        // GET: api/roles/5
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRoleById(int id)
         {
@@ -49,7 +48,7 @@ namespace NewJira.API.Controllers
                 role));
         }
 
-        // POST: api/roles
+        [Authorize(Policy = "user.manage")]
         [HttpPost]
         public async Task<IActionResult> AddRole([FromBody] Role role)
         {
@@ -67,7 +66,7 @@ namespace NewJira.API.Controllers
                 role));
         }
 
-        // PUT: api/roles/5
+        [Authorize(Policy = "user.manage")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRole(int id, [FromBody] Role role)
         {
@@ -90,7 +89,7 @@ namespace NewJira.API.Controllers
                 "Cập nhật vai trò thành công"));
         }
 
-        // DELETE: api/roles/5
+        [Authorize(Policy = "user.manage")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRole(int id)
         {

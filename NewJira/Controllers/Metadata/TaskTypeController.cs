@@ -16,8 +16,7 @@ namespace NewJira.Controllers.Metadata
         {
             _taskTypeRepository = taskTypeRepository;
         }
-
-        // 1. Lấy danh sách toàn bộ TaskType (Yêu cầu đăng nhập)
+        
         [Authorize]
         [HttpGet("get-all")]
         public async Task<IActionResult> GetAllTaskTypes()
@@ -26,8 +25,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Lấy danh sách loại công việc thành công", content = taskTypes });
         }       
 
-        // 3. Tạo mới TaskType (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpPost("create")]
         public async Task<IActionResult> CreateTaskType([FromBody] CreateTaskTypeDto model)
         {
@@ -45,8 +43,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Tạo loại công việc thành công", content = newTaskType });
         }
 
-        // 4. Cập nhật TaskType (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateTaskType(int id, [FromBody] UpdateTaskTypeDto model)
         {
@@ -67,8 +64,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Cập nhật loại công việc thành công", content = existingTaskType });
         }
 
-        // 5. Xóa TaskType (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpDelete("delete/{id}")]
         public async Task<IActionResult> DeleteTaskType(int id)
         {

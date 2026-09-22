@@ -16,8 +16,7 @@ namespace NewJira.Controllers.Metadata
         {
             _categoryRepository = categoryRepository;
         }
-
-        // 1. Lấy danh sách toàn bộ Category (Yêu cầu đăng nhập)
+        
         [Authorize]
         [HttpGet("get-all")]
         public async Task<IActionResult> GetAllCategory()
@@ -25,10 +24,9 @@ namespace NewJira.Controllers.Metadata
             var categories = await _categoryRepository.GetAllProjectCategoriesAsync();
             return Ok(new { statusCode = 200, message = "Lấy danh sách danh mục thành công", content = categories });
         }
-        
 
-        // 3. Tạo mới Category (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+
+        [Authorize(Policy = "user.manage")]
         [HttpPost("create")]
         public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryDto model)
         {
@@ -46,8 +44,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Tạo danh mục thành công", content = newCategory });
         }
 
-        // 4. Cập nhật Category (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateCategory(int id, [FromBody] UpdateCategoryDto model)
         {
@@ -68,8 +65,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Cập nhật danh mục thành công", content = existingCategory });
         }
 
-        // 5. Xóa Category (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpDelete("delete/{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {

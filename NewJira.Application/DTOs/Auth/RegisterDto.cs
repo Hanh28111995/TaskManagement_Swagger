@@ -20,5 +20,5 @@ public class RegisterDto
     [Phone(ErrorMessage = "Số điện thoại không đúng định dạng")]
     public string? PhoneNumber { get; set; }
 
-    public string? Role { get; set; } // Ví dụ: "Admin" hoặc "Member"
+    public string? Roles { get; set; } 
 }

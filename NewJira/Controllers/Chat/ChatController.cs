@@ -72,11 +72,6 @@ namespace NewJira.Controllers.Chat
             if (userId == 0)
                 return Unauthorized(new ResponseResultError<object>("Không xác định được người dùng!"));
 
-            var role = GetRole();
-            if (role != "Manager" && role != "Admin")
-                return StatusCode(403, new ResponseResultError<object>(
-                    "Chỉ Manager/Admin mới được tạo group chat!"));
-
             if (string.IsNullOrWhiteSpace(dto.Name) || dto.MemberIds == null || dto.MemberIds.Count < 2)
                 return BadRequest(new ResponseResultError<object>(
                     "Cần tên nhóm và ít nhất 2 thành viên!"));

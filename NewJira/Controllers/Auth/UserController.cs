@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using NewJira.Application.DTOs.Common;
 using NewJira.Application.Interfaces.Repositories;
+using NewJira.Application.DTOs.Auth;
+using Google.Apis.Util;
 
 namespace NewJira.Controllers.Auth
 {
@@ -18,7 +20,7 @@ namespace NewJira.Controllers.Auth
         }
 
         // 1. Lấy danh sách người dùng đầy đủ (Chỉ Admin)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpGet("get-all-users")]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -57,19 +59,31 @@ namespace NewJira.Controllers.Auth
             {
                 return NotFound(new ResponseResultError<object>(
                     "Không tìm thấy người dùng!"));
-            }
-
-            // Sửa ClaimTypes.Roles thành ClaimTypes.Role chuẩn của .NET
-            var currentRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            }                      
 
             return Ok(new ResponseResultSuccess<object>(
                 "Lấy thông tin người dùng thành công",
                 user));
         }
 
+        [Authorize(Policy = "role.assign")]
+        [HttpPut("update-user/{id}")]
+        public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto dto)
+        {
+            var user = await _userRepository.GetUserByIdAsync(id);
+            if (user == null) return NotFound(new ResponseResultError<object>("Không tìm thấy người dùng!"));
+
+            user.Name = dto.Name ?? user.Name;
+            user.Email = dto.Email ?? user.Email;
+            user.PhoneNumber = dto.PhoneNumber ?? user.PhoneNumber;
+            if (dto.RoleId.HasValue) user.RoleId = dto.RoleId.Value;
+
+            await _userRepository.UpdateUserAsync(user);
+            return Ok(new ResponseResultSuccess<object>("Cập nhật người dùng thành công", user));
+        }
+
         // 4. Xóa người dùng (CHỈ ADMIN MỚI ĐƯỢC PHÉP THỰC HIỆN)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpDelete("delete-user/{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {

@@ -16,8 +16,7 @@ namespace NewJira.Controllers.Metadata
         {
             _priorityRepository = priorityRepository;
         }
-
-        // 1. Lấy danh sách toàn bộ Priority (Yêu cầu đăng nhập)
+        
         [Authorize]
         [HttpGet("get-all")]
         public async Task<IActionResult> GetAllPriorities()
@@ -25,10 +24,9 @@ namespace NewJira.Controllers.Metadata
             var priorities = await _priorityRepository.GetAllPrioritiesAsync();
             return Ok(new { statusCode = 200, message = "Lấy danh sách độ ưu tiên thành công", content = priorities });
         }
-      
 
-        // 3. Tạo mới Priority (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+
+        [Authorize(Policy = "user.manage")]
         [HttpPost("create")]
         public async Task<IActionResult> CreatePriority([FromBody] PriorityDto model)
         {
@@ -47,8 +45,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Tạo độ ưu tiên thành công", content = newPriority });
         }
 
-        // 4. Cập nhật Priority (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdatePriority(int id, [FromBody] PriorityDto model)
         {
@@ -65,8 +62,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Cập nhật độ ưu tiên thành công", content = existingPriority });
         }
 
-        // 5. Xóa Priority (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpDelete("delete/{id}")]
         public async Task<IActionResult> DeletePriority(int id)
         {

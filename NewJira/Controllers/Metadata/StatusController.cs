@@ -16,8 +16,7 @@ namespace NewJira.Controllers.Metadata
         {
             _statusRepository = statusRepository;
         }
-
-        // 1. Lấy danh sách toàn bộ Status (Yêu cầu đăng nhập)
+        
         [Authorize]
         [HttpGet("get-all")]
         public async Task<IActionResult> GetAllStatus()
@@ -26,8 +25,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Lấy danh sách trạng thái thành công", content = statuses });
         }
 
-        // 3. Tạo mới Status (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpPost("create")]
         public async Task<IActionResult> CreateStatus([FromBody] CreateStatusDto model)
         {            
@@ -41,8 +39,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Tạo trạng thái thành công", content = newStatus });
         }
 
-        // 4. Cập nhật Status (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto model)
         {
@@ -64,8 +61,7 @@ namespace NewJira.Controllers.Metadata
             return Ok(new { statusCode = 200, message = "Cập nhật trạng thái thành công", content = existingStatus });
         }
 
-        // 5. Xóa Status (CHỈ ADMIN MỚI ĐƯỢC PHÉP)
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "user.manage")]
         [HttpDelete("delete/{id}")]
         public async Task<IActionResult> DeleteStatus(int id)
         {
