@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.SignalR;
 var builder = WebApplication.CreateBuilder(args);
 
 var envListPath = Environment.GetEnvironmentVariable("ENV_LIST_PATH");
+
 if (!string.IsNullOrWhiteSpace(envListPath))
 {
     if (!File.Exists(envListPath))
@@ -70,10 +71,10 @@ builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddSignalR();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var jwtSecret = jwtSettings["Secret"]
-    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
+//var jwtSecret = jwtSettings["Secret"]
+//    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
 
-//var jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
+var jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
 
 
 var jwtKey = SHA256.HashData(Encoding.UTF8.GetBytes(jwtSecret));
@@ -109,7 +110,12 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(o =>
+{
+    o.AddPolicy("chat.group.create", p => p.RequireClaim("perm", "chat.group.create"));
+    o.AddPolicy("user.manage", p => p.RequireClaim("perm", "user.manage"));
+    o.AddPolicy("project.manage", p => p.RequireClaim("perm", "project.manage"));
+});
 
 var frontendUrlsString = builder.Configuration["Cors:FrontendUrl"];
 var allowedOrigins = !string.IsNullOrWhiteSpace(frontendUrlsString)

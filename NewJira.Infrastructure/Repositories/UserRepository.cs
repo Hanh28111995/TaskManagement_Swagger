@@ -27,17 +27,29 @@ namespace NewJira.Infrastructure.Repositories
 
         public async Task<User?> GetUserByIdAsync(int id)
         {
-            return await _context.Users.FindAsync(id);
+            return await _context.Users                
+                .Include(u => u.Role!)
+                .ThenInclude(r => r.PermissionRoles)
+                .ThenInclude(r => r.Permission)
+                .FirstOrDefaultAsync(u => u.Id == id);
         }
 
         public async Task<User?> GetUserByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users
+                .Include(u => u.Role!)
+                .ThenInclude(r => r.PermissionRoles)
+                .ThenInclude(r => r.Permission)
+                .FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<User?> GetUserByPhoneNumberAsync(string phoneNumber)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+            return await _context.Users
+                .Include(u => u.Role!)  
+                .ThenInclude(r => r.PermissionRoles)
+                .ThenInclude(r => r.Permission)
+                .FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
         }
 
         public async Task AddUserAsync(User user)

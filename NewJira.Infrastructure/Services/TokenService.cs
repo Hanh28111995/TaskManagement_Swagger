@@ -26,8 +26,12 @@ public class TokenService : ITokenService
                              ?? "SuperSecretKeyWithAtLeast32BytesLength!";
 
     public async Task<(string accessToken, string refreshToken)> IssueTokensAsync(User user)
-    {        
-        var accessToken = JwtHelper.GenerateToken(user, Secret);
+    {
+        var permissions = user.Role?.PermissionRoles?
+        .Select(pr => pr.Permission?.Code ?? string.Empty)
+        .Where(c => c.Length > 0);
+
+        var accessToken = JwtHelper.GenerateToken(user, Secret, permissions );
 
         // Refresh token: chuỗi ngẫu nhiên, chỉ lưu HASH trong DB
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));

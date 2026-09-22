@@ -14,9 +14,17 @@ namespace NewJira.Infrastructure.Data;
 public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext((DbContextOptions)options)
 {
     public DbSet<ChatRoom> ChatRooms => Set<ChatRoom>();
+
     public DbSet<ChatRoomMember> ChatRoomMembers => Set<ChatRoomMember>();
+
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<Permission> Permissions => Set<Permission>();
+
+    public DbSet<PermissionRole> PermissionRoles => Set<PermissionRole>();
+
     public DbSet<User> Users => this.Set<User>();
 
     public DbSet<Role> Roles => Set<Role>();
@@ -65,6 +73,15 @@ public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext(
         {
             entity.HasOne(r => r.CreatedBy).WithMany()
                   .HasForeignKey(r => r.CreatedById).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PermissionRole>(entity =>
+        {
+            entity.HasOne(pr => pr.Role).WithMany()
+                  .HasForeignKey(pr => pr.RoleId).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(pr => pr.Permission).WithMany()
+                  .HasForeignKey(pr => pr.PermissionId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<User>(entity =>

@@ -10,17 +10,24 @@ namespace NewJira.Application.Helpers
     public static class JwtHelper
     {
         public const int DefaultExpiryMinutes = 60;
-        public static string GenerateToken(User user, string secretKey, int expiryMinutes = DefaultExpiryMinutes)
+        public static string GenerateToken(User user, string secretKey,  IEnumerable<string>? permissions = null )
         {
+            int expiryMinutes = DefaultExpiryMinutes;
+
             var key = SHA256.HashData(Encoding.UTF8.GetBytes(secretKey));
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
                 new Claim("Id", user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
                 new Claim("Name", user.Name ?? string.Empty),
                 new Claim("role", user.Role?.RoleName ?? "Member")
             };
+            foreach (var perm in permissions ?? Enumerable.Empty<string>())
+            {
+                if (!string.IsNullOrEmpty(perm))
+                    claims.Add(new Claim("perm", perm));
+            }
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
