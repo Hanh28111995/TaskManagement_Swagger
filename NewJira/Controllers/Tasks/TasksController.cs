@@ -239,7 +239,7 @@ namespace NewJira.Controllers.Tasks
             var userIdClaim = User.FindFirst("Id")?.Value;
 
             // Admin được phép thao tác trên mọi task mà không cần thỏa điều kiện Assignee
-            if ((role == "Admin")|| (role == "Manager"))
+            if (User.HasClaim("perm", "task.update.all"))
             {
                 return true;
             }

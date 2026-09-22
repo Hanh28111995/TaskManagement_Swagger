@@ -64,6 +64,7 @@ namespace NewJira.Controllers.Chat
         }
 
         // 3. Tạo group chat — chỉ Manager/Admin
+        [Authorize(Policy = "chat.group.create")]
         [HttpPost("rooms/group")]
         public async Task<IActionResult> CreateGroupRoom([FromBody] CreateGroupRoomDto dto)
         {

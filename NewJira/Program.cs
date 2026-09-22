@@ -71,10 +71,10 @@ builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddSignalR();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-//var jwtSecret = jwtSettings["Secret"]
-//    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
+var jwtSecret = jwtSettings["Secret"]
+    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
 
-var jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
+//var jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
 
 
 var jwtKey = SHA256.HashData(Encoding.UTF8.GetBytes(jwtSecret));
@@ -92,7 +92,7 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(jwtKey),
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
-            RoleClaimType = "role", // <--- Đã sửa từ ClaimTypes.Role thành "role" để khớp token
+            RoleClaimType = "role", 
             ValidateIssuer = false,
             ValidateAudience = false,
         };
@@ -115,6 +115,7 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy("chat.group.create", p => p.RequireClaim("perm", "chat.group.create"));
     o.AddPolicy("user.manage", p => p.RequireClaim("perm", "user.manage"));
     o.AddPolicy("project.manage", p => p.RequireClaim("perm", "project.manage"));
+    o.AddPolicy("task.update.all", p => p.RequireClaim("perm", "task.update.all"));
 });
 
 var frontendUrlsString = builder.Configuration["Cors:FrontendUrl"];

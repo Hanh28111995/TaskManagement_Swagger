@@ -110,7 +110,7 @@ namespace NewJira.Controllers.Auth
                 responseDto));
         }
 
-        [Authorize(Roles = "Admin")] // Khóa bảo mật: Phải có Token mang quyền Admin mới gọi được regisrter
+        [Authorize(Policy = "user.manage")]
         [HttpPost("signup")]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
