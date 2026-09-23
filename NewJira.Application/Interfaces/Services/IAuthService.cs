@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using NewJira.Domain.Entities;
+﻿using NewJira.Domain.Entities;
 
 #nullable enable
 namespace NewJira.Application.Interfaces.Services;

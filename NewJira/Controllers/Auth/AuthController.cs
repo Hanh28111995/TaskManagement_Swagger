@@ -120,7 +120,7 @@ namespace NewJira.Controllers.Auth
                 model.Password,
                 model.Name,
                 model.PhoneNumber ?? string.Empty,
-                model.Roles ?? "Member"
+                model.Role ?? "Member"
             );
 
             if (result == null)

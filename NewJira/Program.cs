@@ -73,10 +73,10 @@ builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddSignalR();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-//var jwtSecret = jwtSettings["Secret"]
-//    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
+var jwtSecret = jwtSettings["Secret"]
+    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
 
-var jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
+//var jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
 
 
 var jwtKey = SHA256.HashData(Encoding.UTF8.GetBytes(jwtSecret));

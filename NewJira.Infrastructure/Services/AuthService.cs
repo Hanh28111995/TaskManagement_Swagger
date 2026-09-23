@@ -1,15 +1,10 @@
 ﻿using FirebaseAdmin.Auth;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using NewJira.Application.Interfaces.Repositories;
 using NewJira.Application.Interfaces.Services;
 using NewJira.Application.Helpers;
 using NewJira.Domain.Entities;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
+using NewJira.Application.DTOs.Auth;
 
 #nullable enable
 namespace NewJira.Infrastructure.Services;
@@ -19,12 +14,14 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
+    private readonly IRoleRepository _roleRepository;
 
-    public AuthService(IUserRepository userRepository, IEmailService emailService, IConfiguration configuration)
+    public AuthService(IUserRepository userRepository, IEmailService emailService, IConfiguration configuration, IRoleRepository roleRepository)
     {
         _userRepository = userRepository;
         _emailService = emailService;
         _configuration = configuration;
+        _roleRepository = roleRepository;
     }
 
     public async Task<User?> LoginAsync(string email, string password)
@@ -99,15 +96,24 @@ public class AuthService : IAuthService
             PasswordHash = PasswordHelper.Hash(password),
             Name = name,
             PhoneNumber = PhoneHelper.NormalizeToLocal(phoneNumber),
-            RoleId = ResolveRoleId(role),
+            RoleId = ResolveRoleId(role),            
         };
 
         await _userRepository.AddUserAsync(newUser);
         await _userRepository.SaveUserChangesAsync();
         
         await _emailService.SendEmailAsync(email, "Chào mừng đến với NewJira", $"Tài khoản của bạn đã được tạo thành công với vai trò: {role}.");
-
-        return newUser;
+        var newUserResponse = new User
+        {
+            Email = email,
+            Password = password,
+            PasswordHash = PasswordHelper.Hash(password),
+            Name = name,
+            PhoneNumber = PhoneHelper.NormalizeToLocal(phoneNumber),            
+            Role =  await _roleRepository.GetRoleByIdAsync(newUser.RoleId)
+        };
+        
+        return newUserResponse;
     }
 
     // Thêm vào AuthService: resolve RoleId

@@ -77,7 +77,7 @@ public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext(
 
         modelBuilder.Entity<PermissionRole>(entity =>
         {
-            entity.HasOne(pr => pr.Role).WithMany()
+            entity.HasOne(pr => pr.Role).WithMany(r => r.PermissionRoles)
                   .HasForeignKey(pr => pr.RoleId).OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(pr => pr.Permission).WithMany()

@@ -8,7 +8,7 @@ public class UserResponseDto
 
     public string Name { get; set; } = string.Empty;
 
-    public string Roles { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
 
     public string? Avatar { get; set; }
 
