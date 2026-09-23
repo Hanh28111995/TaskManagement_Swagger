@@ -19,4 +19,7 @@
     <ProjectReference Include="..\NewJira.Application\NewJira.Application.csproj" />
     <ProjectReference Include="..\NewJira.Domain\NewJira.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
 </Project>

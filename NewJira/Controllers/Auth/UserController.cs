@@ -1,10 +1,11 @@
+using Google.Apis.Util;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+using NewJira.Application.DTOs.Auth;
 using NewJira.Application.DTOs.Common;
 using NewJira.Application.Interfaces.Repositories;
-using NewJira.Application.DTOs.Auth;
-using Google.Apis.Util;
+using NewJira.Domain.Entities;
+using System.Security.Claims;
 
 namespace NewJira.Controllers.Auth
 {
@@ -24,11 +25,9 @@ namespace NewJira.Controllers.Auth
         [HttpGet("get-all-users")]
         public async Task<IActionResult> GetAllUsers()
         {
-            var users = await _userRepository.GetAllUsersAsync();
-
-            return Ok(new ResponseResultSuccess<object>(
-                "Lấy danh sách người dùng thành công (Admin View)",
-                users));
+            var users = await _userRepository.GetAllUsersAsync();           
+            var data = users.Select(MapToResponse);
+            return Ok(new ResponseResultSuccess<object>("Lấy danh sách người dùng thành công (Admin View)", data));
         }
 
         // 2. Lấy danh sách thu gọn cho Member List (Yêu cầu đăng nhập nói chung)
@@ -55,7 +54,8 @@ namespace NewJira.Controllers.Auth
         public async Task<IActionResult> GetUserById(int id)
         {
             var user = await _userRepository.GetUserByIdAsync(id);
-            if (user == null)
+            var data = MapToResponse(user);
+            if (data == null)
             {
                 return NotFound(new ResponseResultError<object>(
                     "Không tìm thấy người dùng!"));
@@ -63,10 +63,10 @@ namespace NewJira.Controllers.Auth
 
             return Ok(new ResponseResultSuccess<object>(
                 "Lấy thông tin người dùng thành công",
-                user));
+                data));
         }
 
-        [Authorize(Policy = "role.assign")]
+        [Authorize(Policy = "user.manage")]
         [HttpPut("update-user/{id}")]
         public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto dto)
         {
@@ -79,7 +79,8 @@ namespace NewJira.Controllers.Auth
             if (dto.RoleId.HasValue) user.RoleId = dto.RoleId.Value;
 
             await _userRepository.UpdateUserAsync(user);
-            return Ok(new ResponseResultSuccess<object>("Cập nhật người dùng thành công", user));
+            var data = MapToResponse(user);
+            return Ok(new ResponseResultSuccess<object>("Cập nhật người dùng thành công", data));
         }
 
         // 4. Xóa người dùng (CHỈ ADMIN MỚI ĐƯỢC PHÉP THỰC HIỆN)
@@ -98,5 +99,15 @@ namespace NewJira.Controllers.Auth
             return Ok(new ResponseResultSuccess<object>(
                 "Xóa người dùng thành công"));
         }
+
+        private static UserResponseDto MapToResponse(User u) => new()
+        {
+            Id = u.Id,
+            Email = u.Email ?? "",
+            Name = u.Name ?? "",
+            Roles = u.Role?.RoleName ?? "Member",
+            Avatar = u.Avatar,
+            PhoneNumber = u.PhoneNumber
+        };
     }
 }

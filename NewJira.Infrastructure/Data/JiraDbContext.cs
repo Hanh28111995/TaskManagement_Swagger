@@ -27,7 +27,7 @@ public class JiraDbContext(DbContextOptions<JiraDbContext> options) : DbContext(
 
     public DbSet<User> Users => this.Set<User>();
 
-    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<Role> Roles => Set<Role>();    
 
     public DbSet<Project> Projects => this.Set<Project>();
 

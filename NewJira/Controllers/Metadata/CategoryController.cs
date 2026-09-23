@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NewJira.Application.DTOs.Common;
 using NewJira.Application.Interfaces.Repositories;
 using NewJira.Domain.Entities;
 using System.ComponentModel.DataAnnotations;
@@ -22,7 +23,7 @@ namespace NewJira.Controllers.Metadata
         public async Task<IActionResult> GetAllCategory()
         {
             var categories = await _categoryRepository.GetAllProjectCategoriesAsync();
-            return Ok(new { statusCode = 200, message = "Lấy danh sách danh mục thành công", content = categories });
+            return Ok(new ResponseResultSuccess<object>("Lấy danh sách danh mục thành công", categories));
         }
 
 
@@ -31,9 +32,7 @@ namespace NewJira.Controllers.Metadata
         public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryDto model)
         {
             if (model == null || string.IsNullOrWhiteSpace(model.CategoryName))
-            {
-                return BadRequest(new { statusCode = 400, message = "Tên danh mục không được để trống!" });
-            }
+                return BadRequest(new ResponseResultError<object>("Tên danh mục không được để trống!"));
 
             var newCategory = new Category
             {
@@ -41,7 +40,7 @@ namespace NewJira.Controllers.Metadata
             };
 
             await _categoryRepository.AddProjectCategoryAsync(newCategory);
-            return Ok(new { statusCode = 200, message = "Tạo danh mục thành công", content = newCategory });
+            return Ok(new ResponseResultSuccess<object>("Tạo danh mục thành công", newCategory));
         }
 
         [Authorize(Policy = "user.manage")]
@@ -56,13 +55,13 @@ namespace NewJira.Controllers.Metadata
             var existingCategory = await _categoryRepository.GetProjectCategoryByIdAsync(id);
             if (existingCategory == null)
             {
-                return NotFound(new { statusCode = 404, message = "Không tìm thấy danh mục để cập nhật!" });
+                return NotFound(new ResponseResultError<object>("Không tìm thấy danh mục để cập nhật!"));
             }
 
             existingCategory.CategoryName = model.CategoryName;
 
             await _categoryRepository.UpdateProjectCategoryAsync(existingCategory); // Đã sửa đúng repository method
-            return Ok(new { statusCode = 200, message = "Cập nhật danh mục thành công", content = existingCategory });
+            return Ok(new ResponseResultSuccess<object>("Cập nhật danh mục thành công", existingCategory));
         }
 
         [Authorize(Policy = "user.manage")]
@@ -76,7 +75,7 @@ namespace NewJira.Controllers.Metadata
             }
 
             await _categoryRepository.DeleteProjectCategoryAsync(id); // Đã sửa đúng repository method
-            return Ok(new { statusCode = 200, message = "Xóa danh mục thành công" });
+            return Ok(new ResponseResultSuccess<object>("Xóa danh mục thành công"));
         }
 
         // --- DTOs NỘI BỘ ---

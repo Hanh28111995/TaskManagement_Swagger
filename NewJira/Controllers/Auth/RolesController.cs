@@ -1,16 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewJira.Application.DTOs.Common;
+using NewJira.Application.DTOs.Role;
 using NewJira.Application.Interfaces.Repositories;
 using NewJira.Domain.Entities;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 #nullable enable
 namespace NewJira.API.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]    
+    [ApiController]
     public class RolesController : ControllerBase
     {
         private readonly IRoleRepository _roleRepository;
@@ -20,90 +19,109 @@ namespace NewJira.API.Controllers
             _roleRepository = roleRepository;
         }
 
+        // 1. Danh sách vai trò (kèm mã quyền) — mọi user đã đăng nhập
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetAllRoles()
         {
             var roles = await _roleRepository.GetAllRolesAsync();
-
             return Ok(new ResponseResultSuccess<object>(
                 "Lấy danh sách vai trò thành công",
-                roles));
+                roles.Select(MapToResponse)));
         }
 
+        // 2. Chi tiết vai trò
         [Authorize]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRoleById(int id)
         {
             var role = await _roleRepository.GetRoleByIdAsync(id);
-
             if (role == null)
-            {
-                return NotFound(new ResponseResultError<object>(
-                    $"Không tìm thấy vai trò với ID {id}!"));
-            }
+                return NotFound(new ResponseResultError<object>($"Không tìm thấy vai trò với ID {id}!"));
 
-            return Ok(new ResponseResultSuccess<object>(
-                "Lấy thông tin vai trò thành công",
-                role));
+            return Ok(new ResponseResultSuccess<object>("Lấy thông tin vai trò thành công", MapToResponse(role)));
         }
 
-        [Authorize(Policy = "user.manage")]
+        // 3. Tạo vai trò
+        [Authorize(Policy = "role.assign")]
         [HttpPost]
-        public async Task<IActionResult> AddRole([FromBody] Role role)
+        public async Task<IActionResult> AddRole([FromBody] RoleRequestDto dto)
         {
-            if (role == null)
+            if (string.IsNullOrWhiteSpace(dto.RoleName))
+                return BadRequest(new ResponseResultError<object>("Tên vai trò không được để trống!"));
+
+            var role = new Role
             {
-                return BadRequest(new ResponseResultError<object>(
-                    "Dữ liệu vai trò không hợp lệ."));
-            }
+                RoleName = dto.RoleName.Trim(),
+                RoleDescription = dto.RoleDescription ?? string.Empty
+            };
 
             await _roleRepository.AddRoleAsync(role);
-
-            // Trả về kết quả kèm theo route trỏ tới bản ghi vừa tạo
-            return CreatedAtAction(nameof(GetRoleById), new { id = role.Id }, new ResponseResultSuccess<object>(
-                "Thêm vai trò thành công",
-                role));
+            return Ok(new ResponseResultSuccess<object>("Thêm vai trò thành công", MapToResponse(role)));
         }
 
-        [Authorize(Policy = "user.manage")]
+        // 4. Cập nhật vai trò
+        [Authorize(Policy = "role.assign")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRole(int id, [FromBody] Role role)
+        public async Task<IActionResult> UpdateRole(int id, [FromBody] RoleRequestDto dto)
         {
-            if (role == null || id != role.Id)
-            {
-                return BadRequest(new ResponseResultError<object>(
-                    "ID vai trò không khớp hoặc dữ liệu không hợp lệ."));
-            }
+            var existing = await _roleRepository.GetRoleByIdAsync(id);
+            if (existing == null)
+                return NotFound(new ResponseResultError<object>($"Không tìm thấy vai trò với ID {id} để cập nhật!"));
 
-            var existingRole = await _roleRepository.GetRoleByIdAsync(id);
-            if (existingRole == null)
-            {
-                return NotFound(new ResponseResultError<object>(
-                    $"Không tìm thấy vai trò với ID {id} để cập nhật!"));
-            }
+            if (string.IsNullOrWhiteSpace(dto.RoleName))
+                return BadRequest(new ResponseResultError<object>("Tên vai trò không được để trống!"));
 
-            await _roleRepository.UpdateRoleAsync(role);
+            existing.RoleName = dto.RoleName.Trim();
+            existing.RoleDescription = dto.RoleDescription ?? string.Empty;
 
-            return Ok(new ResponseResultSuccess<object>(
-                "Cập nhật vai trò thành công"));
+            await _roleRepository.UpdateRoleAsync(existing);
+            return Ok(new ResponseResultSuccess<object>("Cập nhật vai trò thành công", MapToResponse(existing)));
         }
 
-        [Authorize(Policy = "user.manage")]
+        // 5. Xóa vai trò
+        [Authorize(Policy = "role.assign")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRole(int id)
         {
             var role = await _roleRepository.GetRoleByIdAsync(id);
             if (role == null)
-            {
-                return NotFound(new ResponseResultError<object>(
-                    $"Không tìm thấy vai trò với ID {id} để xóa!"));
-            }
+                return NotFound(new ResponseResultError<object>($"Không tìm thấy vai trò với ID {id} để xóa!"));
 
             await _roleRepository.DeleteRoleAsync(id);
-
-            return Ok(new ResponseResultSuccess<object>(
-                "Xóa vai trò thành công"));
+            return Ok(new ResponseResultSuccess<object>("Xóa vai trò thành công"));
         }
+
+        // 6. Gán quyền cho vai trò (thay thế toàn bộ)
+        [Authorize(Policy = "role.assign")]
+        [HttpPut("{id}/permissions")]
+        public async Task<IActionResult> AssignPermissions(int id, [FromBody] List<int> permissionIds)
+        {
+            var role = await _roleRepository.GetRoleByIdAsync(id);
+            if (role == null)
+                return NotFound(new ResponseResultError<object>($"Không tìm thấy vai trò ID {id}!"));
+
+            if (permissionIds == null)
+                return BadRequest(new ResponseResultError<object>("Danh sách quyền không hợp lệ!"));
+
+            await _roleRepository.AssignPermissionsAsync(id, permissionIds);
+
+            // Đọc lại sau khi gán để trả về danh sách quyền mới
+            var updated = await _roleRepository.GetRoleByIdAsync(id);
+            return Ok(new ResponseResultSuccess<object>("Gán quyền thành công", MapToResponse(updated!)));
+        }
+
+        // --- MAPPER ---
+        private static RoleResponseDto MapToResponse(Role r) => new()
+        {
+            Id = r.Id,
+            RoleName = r.RoleName,
+            RoleDescription = r.RoleDescription,
+            Permissions = r.PermissionRoles?
+                .Select(pr => pr.Permission?.Code ?? string.Empty)
+                .Where(code => code.Length > 0)
+                .Distinct()
+                .ToList() ?? new List<string>()
+        };
     }
 }

@@ -23,7 +23,7 @@ public class ProjectsController : ControllerBase
         _taskRepository = taskRepository;
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "project.manage")]
     [HttpPost("create-project")]
     public async Task<IActionResult> CreateProject([FromBody] CreateUpdateProjectDto model)
     {
@@ -112,11 +112,15 @@ public class ProjectsController : ControllerBase
 
         return Ok(new ResponseResultSuccess<object>("Cập nhật dự án thành công", projectDto));
     }
-    
+
 
     // --- CÁC HÀM HỖ TRỢ (HELPER METHODS) ---
 
-    private bool CanManageProject(Project project) => User.IsInRole("Admin") || project.CreatorId == GetCurrentUserId();
+    private bool CanManageProject(Project project)
+    {
+        return User.HasClaim("perm", "project.manage")
+            || project.CreatorId == GetCurrentUserId();
+    }
 
     private int? GetCurrentUserId()
     {

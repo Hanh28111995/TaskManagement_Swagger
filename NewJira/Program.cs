@@ -66,15 +66,17 @@ builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+
 
 
 builder.Services.AddSignalR();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var jwtSecret = jwtSettings["Secret"]
-    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
+//var jwtSecret = jwtSettings["Secret"]
+//    ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
 
-//var jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
+var jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
 
 
 var jwtKey = SHA256.HashData(Encoding.UTF8.GetBytes(jwtSecret));
@@ -116,6 +118,7 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy("user.manage", p => p.RequireClaim("perm", "user.manage"));
     o.AddPolicy("project.manage", p => p.RequireClaim("perm", "project.manage"));
     o.AddPolicy("task.update.all", p => p.RequireClaim("perm", "task.update.all"));
+    o.AddPolicy("role.assign", p => p.RequireClaim("perm", "role.assign"));
 });
 
 var frontendUrlsString = builder.Configuration["Cors:FrontendUrl"];
