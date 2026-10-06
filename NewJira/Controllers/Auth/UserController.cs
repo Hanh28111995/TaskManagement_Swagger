@@ -54,13 +54,13 @@ namespace NewJira.Controllers.Auth
         public async Task<IActionResult> GetUserById(int id)
         {
             var user = await _userRepository.GetUserByIdAsync(id);
-            var data = MapToResponse(user);
-            if (data == null)
+            if (user == null)
             {
                 return NotFound(new ResponseResultError<object>(
                     "Không tìm thấy người dùng!"));
-            }                      
+            }
 
+            var data = MapToResponse(user);
             return Ok(new ResponseResultSuccess<object>(
                 "Lấy thông tin người dùng thành công",
                 data));
@@ -105,7 +105,7 @@ namespace NewJira.Controllers.Auth
             Id = u.Id,
             Email = u.Email ?? "",
             Name = u.Name ?? "",
-            Roles = u.Role?.RoleName ?? "Member",
+            Role = u.Role?.RoleName ?? "Member",
             Avatar = u.Avatar,
             PhoneNumber = u.PhoneNumber
         };

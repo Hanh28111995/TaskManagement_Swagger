@@ -5,5 +5,6 @@
   <Project Path="NewJira.Application/NewJira.Application.csproj" />
   <Project Path="NewJira.Domain/NewJira.Domain.csproj" />
   <Project Path="NewJira.Infrastructure/NewJira.Infrastructure.csproj" />
+  <Project Path="NewJira.UnitTests/NewJira.UnitTests.csproj" />
   <Project Path="NewJira/NewJira.csproj" />
 </Solution>

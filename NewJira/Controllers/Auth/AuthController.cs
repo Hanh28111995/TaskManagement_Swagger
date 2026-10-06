@@ -40,7 +40,7 @@ namespace NewJira.Controllers.Auth
             {
                 Id = user.Id,
                 Name = user.Name,
-                Roles = user.Role?.RoleName ?? "Member",
+                Role = user.Role?.RoleName ?? "Member",
                 Avatar = user.Avatar,
                 PhoneNumber = user.PhoneNumber,
                 Email = user.Email,
@@ -97,7 +97,7 @@ namespace NewJira.Controllers.Auth
             {
                 Id = user.Id,
                 Name = user.Name,
-                Roles = user.Role?.RoleName ?? "Member",
+                Role = user.Role?.RoleName ?? "Member",
                 Avatar = user.Avatar,
                 PhoneNumber = user.PhoneNumber,
                 Email = user.Email,
