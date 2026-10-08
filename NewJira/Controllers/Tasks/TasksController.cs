@@ -25,22 +25,50 @@ namespace NewJira.Controllers.Tasks
         // 1. Lấy danh sách task (Có phân quyền theo Role)
         [HttpGet("get-all-task")]
         public async Task<IActionResult> GetAllTasks()
-        {
-            var tasks = await _taskRepository.GetAllTasksAsync();
-
+        {            
             var role = User.FindFirst("role")?.Value;
             var userIdClaim = User.FindFirst("Id")?.Value;
 
             // Nếu là Member, chỉ lấy các task được phân công cho chính user đó
             if (role == "Member" && int.TryParse(userIdClaim, out int userId))
             {
-                tasks = tasks.Where(t => t.AssigneeId == userId).ToList();
+                var tasks = await _taskRepository.GetAllTasksByMemberAsync(userId);
+                var taskDtos = tasks.Select(MapToTaskResponseDto).ToList();
+                return Ok(new ResponseResultSuccess<object>("Lấy danh sách task thành công", taskDtos));
+            }
+            if (role == "Admin" || role == "ProjectManager")
+            {
+                var tasks = await _taskRepository.GetAllTasksAsync();
+                var taskDtos = tasks.Select(MapToTaskResponseDto).ToList();
+                return Ok(new ResponseResultSuccess<object>("Lấy danh sách task thành công", taskDtos));
+            }
+            return Unauthorized(new ResponseResultError<object>("Không tìm thấy thông tin định danh người dùng"));
+        }
+
+
+        [HttpGet("get-all-task-by-status/{statusId}")]
+        public async Task<IActionResult> GetAllTasksByStatus(int statusId)
+        {            
+            var role = User.FindFirst("role")?.Value;
+            var userIdClaim = User.FindFirst("Id")?.Value;            
+
+            if (role == "Member" && int.TryParse(userIdClaim, out int userId))
+            {
+                var tasks = await _taskRepository.GetAllTasksByStatusByMemberAsync(statusId, userId);
+                var taskDtos = tasks.Select(MapToTaskResponseDto).ToList();
+                return Ok(new ResponseResultSuccess<object>("Lấy danh sách task thành công", taskDtos));
+            }
+            if (role == "Admin" || role == "ProjectManager")
+            {
+                var tasks = await _taskRepository.GetAllTasksByStatusAsync(statusId);
+                var taskDtos = tasks.Select(MapToTaskResponseDto).ToList();
+                return Ok(new ResponseResultSuccess<object>("Lấy danh sách task thành công", taskDtos));
             }
 
-            var taskDtos = tasks.Select(MapToTaskResponseDto).ToList();
-
-            return Ok(new ResponseResultSuccess<object>("Lấy danh sách task thành công", taskDtos));
+            return Unauthorized(new ResponseResultError<object>("Không tìm thấy thông tin định danh người dùng"));
         }
+
+
 
         // 2. Lấy chi tiết task theo projectId và id
         [HttpGet("{projectId}/get-task-detail/{id}")]

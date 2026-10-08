@@ -25,6 +25,45 @@ public class TaskRepository : ITaskRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<TaskItem>> GetAllTasksByMemberAsync(int memberId)
+    {
+        return await _context.TaskItems
+            .Include(t => t.Project)
+            .Include(t => t.Status)
+            .Include(t => t.Priority)
+            .Include(t => t.TaskType)
+            .Include(t => t.Assignee)
+            .Include(t => t.Comments)
+            .Where(t => t.AssigneeId == memberId)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<TaskItem>> GetAllTasksByStatusAsync(int statusId)
+    {
+        return await _context.TaskItems
+            .Include(t => t.Project)
+            .Include(t => t.Status)
+            .Include(t => t.Priority)
+            .Include(t => t.TaskType)
+            .Include(t => t.Assignee)
+            .Include(t => t.Comments)
+            .Where(t => t.StatusId == statusId)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<TaskItem>> GetAllTasksByStatusByMemberAsync(int statusId, int memberId)
+    {
+        return await _context.TaskItems
+            .Include(t => t.Project)
+            .Include(t => t.Status)
+            .Include(t => t.Priority)
+            .Include(t => t.TaskType)
+            .Include(t => t.Assignee)
+            .Include(t => t.Comments)
+            .Where(t => t.StatusId == statusId && t.AssigneeId == memberId)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<TaskItem>> GetTaskByProjectIdAsync(int projectId)
     {
         return await _context.TaskItems

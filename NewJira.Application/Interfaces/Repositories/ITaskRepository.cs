@@ -3,7 +3,10 @@ using NewJira.Domain.Entities;
 
 public interface ITaskRepository
 {
-    Task<IEnumerable<TaskItem>> GetAllTasksAsync();    
+    Task<IEnumerable<TaskItem>> GetAllTasksAsync();
+    Task<IEnumerable<TaskItem>> GetAllTasksByMemberAsync(int memberId);
+    Task<IEnumerable<TaskItem>> GetAllTasksByStatusAsync(int statusId);
+    Task<IEnumerable<TaskItem>> GetAllTasksByStatusByMemberAsync(int statusId, int memberId);
     Task<IEnumerable<TaskItem>> GetTaskByProjectIdAsync(int projectId);
     Task<TaskItem?> GetTaskDetailByProjectIdAsync(int projectId, int taskId);
     Task AddTaskAsync(int projectId, TaskItem taskItem);
