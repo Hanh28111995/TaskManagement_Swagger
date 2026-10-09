@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NewJira.Application.DTOs.Common;
 using NewJira.Application.DTOs.Task;
 using NewJira.Domain.Entities;
 using NewJira.Infrastructure.Data;
@@ -11,6 +12,53 @@ public class TaskRepository : ITaskRepository
     public TaskRepository(JiraDbContext context)
     {
         _context = context;
+    }
+
+    public async Task<DashboardSummaryDto> GetDashboardSummaryAsync(int? userId, string role)
+    {
+        var query = _context.TaskItems.AsQueryable();
+        if (role == "Member" && userId.HasValue)
+            query = query.Where(t => t.AssigneeId == userId.Value);
+
+        var filteredByStatus = await query
+            .GroupBy(t => new { t.StatusId, t.Status!.StatusName })
+            .Select(g => new StatusCountDto
+            {
+                StatusId = g.Key.StatusId,
+                StatusName = g.Key.StatusName,
+                Count = g.Count()
+            })
+            .ToListAsync();
+
+        // ✅ InProgress: lọc ĐÚNG status đang làm (bỏ dấu !)
+        var inProgressCount = filteredByStatus
+            .Where(s => s.StatusName.ToLower().Contains("progress")
+                     || s.StatusName.ToLower().Contains("doing"))
+            .Sum(s => s.Count);
+
+        // ✅ Completed: dùng Alias (đúng chuẩn seed của bạn)
+        var completedByProject = await _context.Projects
+            .GroupJoin(
+                _context.TaskItems.Where(t => t.Status!.Alias != null
+                                            && t.Status!.Alias.ToLower().Contains("done")),
+                p => p.Id,
+                t => t.ProjectId,
+                (p, tasks) => new ProjectCompletedDto
+                {
+                    ProjectId = p.Id,
+                    ProjectName = p.ProjectName,
+                    Completed = tasks.Count()
+                })
+            .ToListAsync();
+
+        return new DashboardSummaryDto
+        {            
+            TotalProjects = await _context.Projects.CountAsync(),
+            TotalTasks = filteredByStatus.Sum(s => s.Count),
+            CompletedTasks = completedByProject.Sum(p => p.Completed),
+            InProgressTasks = inProgressCount,
+            ByStatus = filteredByStatus,          
+        };
     }
 
     public async Task<IEnumerable<TaskItem>> GetAllTasksAsync()

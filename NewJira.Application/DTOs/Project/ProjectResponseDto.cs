@@ -33,4 +33,10 @@ public class ProjectListResponseDto
 
     public int CreatorId { get; set; }
 
+    public int TotalTasks { get; set; }
+
+    public int CompletedTasks { get; set; }
+
+    public string Description { get; set; }
+
 }

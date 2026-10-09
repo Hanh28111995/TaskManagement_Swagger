@@ -22,6 +22,16 @@ namespace NewJira.Controllers.Tasks
             _taskRepository = taskRepository;
         }
 
+
+        [HttpGet("dashboard-summary")]
+        public async Task<IActionResult> GetDashboardSummary()
+        {
+            var role = User.FindFirst("role")?.Value;
+            var userId = int.TryParse(User.FindFirst("Id")?.Value, out var id) ? id : (int?)null;
+            var summary = await _taskRepository.GetDashboardSummaryAsync(userId, role ?? "");
+            return Ok(new ResponseResultSuccess<object>("Lấy dữ liệu dashboard thành công", summary));
+        }
+
         // 1. Lấy danh sách task (Có phân quyền theo Role)
         [HttpGet("get-all-task")]
         public async Task<IActionResult> GetAllTasks()
