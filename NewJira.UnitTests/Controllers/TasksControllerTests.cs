@@ -11,24 +11,24 @@ namespace NewJira.UnitTests.Controllers;
 public class TasksControllerTests
 {
     private readonly Mock<ITaskRepository> _repository = new();
+[Fact]
+public async Task GetAllTasks_FiltersToAssignedTasks_ForMember()
+{
+    // Sửa: Member path gọi GetAllTasksByMemberAsync, không phải GetAllTasksAsync
+    _repository.Setup(repository => repository.GetAllTasksByMemberAsync(8))
+        .ReturnsAsync(new[]
+        {
+            new TaskItem { Id = 1, TaskName = "Assigned", AssigneeId = 8 }
+        });
+    var controller = CreateController(("role", "Member"), ("Id", "8"));
 
-    [Fact]
-    public async Task GetAllTasks_FiltersToAssignedTasks_ForMember()
-    {
-        _repository.Setup(repository => repository.GetAllTasksAsync())
-            .ReturnsAsync(new[]
-            {
-                new TaskItem { Id = 1, TaskName = "Assigned", AssigneeId = 8 },
-                new TaskItem { Id = 2, TaskName = "Other", AssigneeId = 9 }
-            });
-        var controller = CreateController(("role", "Member"), ("Id", "8"));
+    var result = Assert.IsType<OkObjectResult>(await controller.GetAllTasks());
+    var response = Assert.IsAssignableFrom<NewJira.Application.DTOs.Common.ResponseResult<object>>(result.Value);
+    var tasks = Assert.IsAssignableFrom<IEnumerable<TaskResponseDto>>(response.Content);
 
-        var result = Assert.IsType<OkObjectResult>(await controller.GetAllTasks());
-        var response = Assert.IsAssignableFrom<NewJira.Application.DTOs.Common.ResponseResult<object>>(result.Value);
-        var tasks = Assert.IsAssignableFrom<IEnumerable<TaskResponseDto>>(response.Content);
-
-        Assert.Equal(new[] { "Assigned" }, tasks.Select(task => task.TaskName));
-    }
+    Assert.Equal(new[] { "Assigned" }, tasks.Select(task => task.TaskName));
+    _repository.Verify(repository => repository.GetAllTasksAsync(), Times.Never); // xác nhận không chạy nhánh Admin
+}
 
     [Fact]
     public async Task GetTaskById_ReturnsNotFound_WhenTaskDoesNotExist()
