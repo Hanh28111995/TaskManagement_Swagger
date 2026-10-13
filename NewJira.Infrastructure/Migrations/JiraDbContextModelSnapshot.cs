@@ -183,16 +183,11 @@ namespace NewJira.Infrastructure.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("RoleId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PermissionId");
 
                     b.HasIndex("RoleId");
-
-                    b.HasIndex("RoleId1");
 
                     b.ToTable("PermissionRoles");
                 });
@@ -525,14 +520,10 @@ namespace NewJira.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("NewJira.Domain.Entities.Role", "Role")
-                        .WithMany()
+                        .WithMany("PermissionRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("NewJira.Domain.Entities.Role", null)
-                        .WithMany("PermissionRoles")
-                        .HasForeignKey("RoleId1");
 
                     b.Navigation("Permission");
 

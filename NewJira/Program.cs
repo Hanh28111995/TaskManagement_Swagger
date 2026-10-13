@@ -76,9 +76,6 @@ var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var jwtSecret = jwtSettings["Secret"]
     ?? throw new InvalidOperationException("JWT_SECRET_KEY chưa được cấu hình.");
 
-//var jwtSecret = "DefaultSuperSecretKeyForDevelopmentOnly123456789@";
-
-
 var jwtKey = SHA256.HashData(Encoding.UTF8.GetBytes(jwtSecret));
 
 builder.Services
@@ -218,4 +215,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
+
+using var scope = app.Services.CreateScope();
+var dbContext = scope.ServiceProvider.GetRequiredService<JiraDbContext>();
+dbContext.Database.Migrate();
+
 app.Run();

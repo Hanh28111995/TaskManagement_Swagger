@@ -21,12 +21,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      # ⭐ Quan trọng: override (localdb) → container SQL Server
-      ConnectionStrings__DefaultConnection: "Server=db;Database=JiraDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True"
+    environment:    
       ASPNETCORE_ENVIRONMENT: "Development"
+      ENV_LIST_PATH: "/config/env-list.json"
+      GOOGLE_APPLICATION_CREDENTIALS: "/config/newjira-firebase-admin.json"      
+      ConnectionStrings__DefaultConnection: "Server=db;Database=JiraDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True"    
+    volumes:
+      - "D:/Secrets/env-list.json:/config/env-list.json:ro"
+      - "D:/Secrets/newjira-firebase-admin.json:/config/newjira-firebase-admin.json:ro"
     ports:
-      - "8080:80"
+      - "8080:8080"
 
 volumes:
   mssql-data:

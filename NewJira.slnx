@@ -1,6 +1,9 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path=".dockerignore" />
     <File Path=".editorconfig" />
+    <File Path="docker-compose.yaml" />
+    <File Path="Dockerfile" />
   </Folder>
   <Project Path="NewJira.Application/NewJira.Application.csproj" />
   <Project Path="NewJira.Domain/NewJira.Domain.csproj" />
