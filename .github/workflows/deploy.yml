@@ -41,7 +41,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/newjira-api:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/newjira:latest
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
