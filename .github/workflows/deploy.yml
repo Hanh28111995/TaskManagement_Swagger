@@ -29,7 +29,7 @@ jobs:
         run: dotnet build NewJira.slnx --no-restore --configuration Release
 
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: test
 
     environment:
@@ -56,17 +56,9 @@ jobs:
           push: true
           tags: '${{ secrets.DOCKERHUB_USERNAME }}/newjira-api:latest'
 
-      - name: Deploy to VPS via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: '${{ secrets.VPS_HOST }}'
-          username: '${{ secrets.VPS_USER }}'
-          key: '${{ secrets.VPS_SSH_KEY }}'
-          port: 22
-          command_timeout: 20m
-          script_stop: true
-          script: |
-            cd /root/TaskManagement_Swagger
-            docker compose pull
-            docker compose down
-            docker compose up -d --remove-orphans
+      - name: Deploy to VPS via Docker Compose
+        run: |
+          cd /home/deployer/actions-runner/_work/TaskManagement_Swagger/TaskManagement_Swagger
+          docker compose pull
+          docker compose down
+          docker compose up -d --remove-orphans
