@@ -13,7 +13,7 @@ using NewJira.Hubs;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.SignalR;
-
+//////////////////// ///////////////
 var builder = WebApplication.CreateBuilder(args);
 
 var envListPath = Environment.GetEnvironmentVariable("ENV_LIST_PATH");
