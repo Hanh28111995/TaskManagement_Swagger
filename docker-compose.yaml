@@ -27,8 +27,8 @@ services:
       GOOGLE_APPLICATION_CREDENTIALS: "/config/newjira-firebase-admin.json"      
       ConnectionStrings__DefaultConnection: "Server=db;Database=JiraDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True"    
     volumes:
-      - "D:/Secrets/env-list.json:/config/env-list.json:ro"
-      - "D:/Secrets/newjira-firebase-admin.json:/config/newjira-firebase-admin.json:ro"
+      - /root/secrets/env-list.json:/config/env-list.json:ro
+      - /root/secrets/newjira-firebase-admin.json:/config/newjira-firebase-admin.json:ro
     ports:
       - "8080:8080"
 
