@@ -1,0 +1,42 @@
+name: Deploy .NET Clean Architecture to VPS
+
+on:
+  push:
+    branches: [ "main" ] # Hoặc "master" tùy nhánh của bạn
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile # Đường dẫn tới Dockerfile của bạn
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/newjira-api:latest
+
+    - name: Deploy to VPS via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        script: |
+          cd /path/to/your/project-on-vps
+          docker compose pull
+          docker compose down
+          docker compose up -d --build
