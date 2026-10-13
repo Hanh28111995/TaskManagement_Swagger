@@ -1,47 +1,58 @@
-name: Deploy .NET Clean Architecture to VPS
+name: CI/CD NewJira
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: Restore
+        run: dotnet restore NewJira.slnx
+      - name: Run Unit Tests
+        run: dotnet test NewJira.UnitTests/NewJira.UnitTests.csproj --no-restore --verbosity minimal
+      # (nếu muốn build luôn để test biên dịch toàn solution)
+      - name: Build
+        run: dotnet build NewJira.slnx --no-restore
+
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: 
-      name: production # Khai báo đúng tên environment bạn vừa tạo
-
+    needs: test                # ← chờ tests pass mới deploy
+    environment:
+      name: production
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/newjira-api:latest
-
-    - name: Deploy to VPS via SSH
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        script: |
-          cd /root/TaskManagement_Swagger
-          docker compose pull
-          docker compose down
-          docker compose up -d --build
-          docker compose pull
-          docker compose down
-          docker compose up -d --build
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/newjira-api:latest
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /root/TaskManagement_Swagger
+            docker compose pull
+            docker compose down
+            docker compose up -d
+            docker compose pull
+            docker compose down
+            docker compose up -d
