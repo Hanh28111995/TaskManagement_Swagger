@@ -105,9 +105,8 @@ public class AuthService : IAuthService
         await _emailService.SendEmailAsync(email, "Chào mừng đến với NewJira", $"Tài khoản của bạn đã được tạo thành công với vai trò: {role}.");
         var newUserResponse = new User
         {
+            Id = newUser.Id,
             Email = email,
-            Password = password,
-            PasswordHash = PasswordHelper.Hash(password),
             Name = name,
             PhoneNumber = PhoneHelper.NormalizeToLocal(phoneNumber),            
             Role =  await _roleRepository.GetRoleByIdAsync(newUser.RoleId)

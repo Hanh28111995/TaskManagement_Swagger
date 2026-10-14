@@ -129,9 +129,19 @@ namespace NewJira.Controllers.Auth
                     "Email đã tồn tại hoặc tạo tài khoản thất bại!"));
             }
 
+            var responseDto = new UserResponseDto
+            {
+                Id = result.Id,
+                Email = result.Email ?? string.Empty,
+                Name = result.Name ?? string.Empty,
+                Role = result.Role?.RoleName ?? "Member",
+                Avatar = result.Avatar,
+                PhoneNumber = result.PhoneNumber
+            };
+
             return Ok(new ResponseResultSuccess<object>(
                 "Tạo tài khoản thành công! Đã gửi email xác thực.",
-                result));
+                responseDto));
         }
 
         [HttpPost("refresh")]

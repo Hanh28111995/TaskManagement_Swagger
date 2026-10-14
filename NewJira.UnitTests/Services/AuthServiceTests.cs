@@ -198,6 +198,8 @@ public class AuthServiceTests
 
         Assert.NotNull(result);
         Assert.NotNull(addedUser);
+        Assert.Null(result.Password);
+        Assert.Null(result.PasswordHash);
         Assert.Equal(expectedRoleId, addedUser.RoleId);
         Assert.Equal("0901234567", addedUser.PhoneNumber);
         Assert.True(PasswordHelper.Verify("Secret@123", addedUser.PasswordHash!));
